@@ -10,15 +10,42 @@ Eine Flask-Webapp zum Finden von Versicherungsmaklern in einem bestimmten Umkrei
 - **JSON API**: Weiterleitung der Daten an externe APIs
 - **Deutsche Lokalisierung**: Optimiert für deutsche Standorte und Versicherungsmakler
 
-## Installation
+## 🚀 Schnellstart (Automatische Installation)
+
+### Windows
+```batch
+# Vollständige Installation und Start
+install.bat
+
+# Nur Installation
+install.bat --install
+
+# Nur App starten
+start.bat
+```
+
+### macOS/Linux
+```bash
+# Vollständige Installation und Start
+./install.sh
+
+# Nur Installation
+./install.sh --install
+
+# Nur App starten
+./start.sh
+```
+
+## 📋 Manuelle Installation
 
 1. Python 3.8+ installieren
-2. Abhängigkeiten installieren:
+2. Repository klonen oder herunterladen
+3. Abhängigkeiten installieren:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Umgebungsvariablen konfigurieren:
+4. Umgebungsvariablen konfigurieren:
    ```bash
    cp .env.example .env
    # .env Datei mit Google Maps API Key bearbeiten
@@ -130,6 +157,58 @@ Die Anwendung ist dann unter `http://localhost:5000` erreichbar.
 }
 ```
 
+## 📁 Verfügbare Scripts
+
+### Installation Scripts
+
+| Script | Plattform | Beschreibung |
+|--------|-----------|--------------|
+| `install.sh` | macOS/Linux | Vollständige automatische Installation und Start |
+| `install.bat` | Windows | Vollständige automatische Installation und Start |
+
+**Verfügbare Optionen:**
+- `--install` - Nur Installation, kein automatischer Start
+- `--start` - Nur App starten (Installation überspringen)
+- `--production` - Produktionsserver mit Gunicorn starten
+- `--test` - Nur Tests ausführen
+- `--help` - Hilfe anzeigen
+
+### Start Scripts (nach Installation)
+
+| Script | Plattform | Beschreibung |
+|--------|-----------|--------------|
+| `start.sh` | macOS/Linux | Schneller App-Start ohne Installation |
+| `start.bat` | Windows | Schneller App-Start ohne Installation |
+
+**Verfügbare Optionen:**
+- Standard: Entwicklungsserver starten
+- `--production` - Produktionsserver mit Gunicorn starten
+- `--help` - Hilfe anzeigen
+
+### Beispiel-Verwendung
+
+```bash
+# Erste Installation (automatisch)
+./install.sh
+
+# App später starten
+./start.sh
+
+# Produktionsstart
+./start.sh --production
+```
+
+```batch
+rem Windows Erste Installation
+install.bat
+
+rem App später starten
+start.bat
+
+rem Produktionsstart  
+start.bat --production
+```
+
 ## Projektstruktur
 
 ```
@@ -137,6 +216,10 @@ scrum/
 ├── app.py                 # Haupt-Flask-Anwendung
 ├── requirements.txt       # Python-Abhängigkeiten
 ├── .env.example          # Beispiel-Umgebungsvariablen
+├── install.sh            # Linux/macOS Installation Script
+├── install.bat           # Windows Installation Script
+├── start.sh              # Linux/macOS Start Script
+├── start.bat             # Windows Start Script
 ├── static/               # Statische Dateien (CSS, JS)
 ├── templates/            # HTML-Templates
 └── utils/                # Hilfsfunktionen
