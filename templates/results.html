@@ -25,31 +25,61 @@
             </div>
         </div>
         
-        <!-- API Forward Controls -->
-        <div class="card mb-4">
+        <!-- Export Controls mit erweiterten Funktionen -->
+        <div class="card mb-4 export-controls">
             <div class="card-body">
                 <div class="row align-items-center">
-                    <div class="col">
-                        <h6 class="mb-0">
-                            <i class="fas fa-share-alt me-2"></i>API-Integration
+                    <div class="col-md-6">
+                        <h6 class="mb-1 text-gradient">
+                            <i class="fas fa-download me-2"></i>Export & Integration
                         </h6>
-                        <small class="text-muted">Daten an externe API weiterleiten</small>
+                        <small class="text-muted">Daten exportieren oder an externe API weiterleiten</small>
                     </div>
-                    <div class="col-auto">
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-outline-primary btn-sm" onclick="forwardAllBrokers()">
-                                <i class="fas fa-share me-1"></i>Alle senden
+                    <div class="col-md-6">
+                        <div class="btn-group w-100" role="group">
+                            <a href="/export/excel" class="btn btn-outline-success btn-excel hover-lift" onclick="Utils.showToast('Excel-Export wird vorbereitet...', 'info')">
+                                <i class="fas fa-file-excel me-1"></i>Excel Export
+                            </a>
+                            <a href="/export/json" class="btn btn-outline-info btn-json hover-lift" onclick="Utils.showToast('JSON-Export wird vorbereitet...', 'info')">
+                                <i class="fas fa-file-code me-1"></i>JSON Export
+                            </a>
+                            <button class="btn btn-outline-primary hover-lift" onclick="forwardAllBrokers()">
+                                <i class="fas fa-share me-1"></i>Alle an API
                             </button>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="exportAsJson()">
-                                <i class="fas fa-download me-1"></i>JSON Export
-                            </button>
-                            <a href="{{ url_for('api_test_connection') }}" class="btn btn-outline-info btn-sm">
+                            <a href="{{ url_for('api_test_connection') }}" class="btn btn-outline-secondary hover-lift">
                                 <i class="fas fa-cog me-1"></i>API Config
                             </a>
                         </div>
                     </div>
                 </div>
-                <div id="apiStatus" class="mt-2"></div>
+                
+                <!-- Progress Bar für Batch-Operationen -->
+                <div id="batchProgress" class="mt-3" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block">Verarbeitung läuft...</small>
+                </div>
+                
+                <!-- Statistiken -->
+                <div class="row mt-3">
+                    <div class="col-6 col-md-3 text-center">
+                        <div class="h5 mb-0 text-primary" id="totalBrokers">{{ brokers|length }}</div>
+                        <small class="text-muted">Makler gefunden</small>
+                    </div>
+                    <div class="col-6 col-md-3 text-center">
+                        <div class="h5 mb-0 text-success" id="withEmail">0</div>
+                        <small class="text-muted">Mit E-Mail</small>
+                    </div>
+                    <div class="col-6 col-md-3 text-center">
+                        <div class="h5 mb-0 text-info" id="withWebsite">0</div>
+                        <small class="text-muted">Mit Website</small>
+                    </div>
+                    <div class="col-6 col-md-3 text-center">
+                        <div class="h5 mb-0 text-warning" id="avgRating">0</div>
+                        <small class="text-muted">⭐ Bewertung</small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -115,7 +145,7 @@
                     {% if broker.phone != 'Nicht verfügbar' %}
                     <div class="mb-2">
                         <i class="fas fa-phone text-muted me-2"></i>
-                        <a href="tel:{{ broker.phone }}" class="text-decoration-none">
+                        <a href="tel:{{ broker.phone }}" class="tel-link">
                             <small>{{ broker.phone }}</small>
                         </a>
                     </div>
@@ -124,7 +154,7 @@
                     {% if broker.email != 'Nicht verfügbar' %}
                     <div class="mb-2">
                         <i class="fas fa-envelope text-muted me-2"></i>
-                        <a href="mailto:{{ broker.email }}" class="text-decoration-none">
+                        <a href="mailto:{{ broker.email }}" class="email-link">
                             <small>{{ broker.email }}</small>
                         </a>
                     </div>
@@ -144,13 +174,13 @@
             <div class="card-footer bg-light">
                 <div class="btn-group w-100" role="group">
                     {% if broker.phone != 'Nicht verfügbar' %}
-                    <a href="tel:{{ broker.phone }}" class="btn btn-outline-success btn-sm">
+                    <a href="tel:{{ broker.phone }}" class="btn btn-outline-success btn-sm btn-contact-phone">
                         <i class="fas fa-phone me-1"></i>Anrufen
                     </a>
                     {% endif %}
                     
                     {% if broker.email != 'Nicht verfügbar' %}
-                    <a href="mailto:{{ broker.email }}" class="btn btn-outline-primary btn-sm">
+                    <a href="mailto:{{ broker.email }}" class="btn btn-outline-primary btn-sm btn-contact-email">
                         <i class="fas fa-envelope me-1"></i>E-Mail
                     </a>
                     {% endif %}
@@ -173,22 +203,82 @@
 
 {% block scripts %}
 <script>
-// Makler-Daten aus JSON laden
+// Enhanced JavaScript für Results Page - Version 2.0
 const brokersData = JSON.parse(document.getElementById('brokersData').textContent);
+let processedCount = 0;
+let successCount = 0;
+
+// Initialize page statistics
+document.addEventListener('DOMContentLoaded', function() {
+    calculateAndDisplayStats();
+    initializeBrokerCards();
+    setupKeyboardShortcuts();
+});
+
+function calculateAndDisplayStats() {
+    const stats = {
+        total: brokersData.length,
+        withEmail: brokersData.filter(b => b.email && b.email !== 'Nicht verfügbar').length,
+        withWebsite: brokersData.filter(b => b.website && b.website !== 'Nicht verfügbar').length,
+        avgRating: brokersData.filter(b => b.rating > 0).reduce((sum, b) => sum + b.rating, 0) / 
+                   brokersData.filter(b => b.rating > 0).length || 0
+    };
+    
+    // Animate numbers
+    Utils.animateNumber(document.getElementById('totalBrokers'), 0, stats.total, 1000);
+    Utils.animateNumber(document.getElementById('withEmail'), 0, stats.withEmail, 1200);
+    Utils.animateNumber(document.getElementById('withWebsite'), 0, stats.withWebsite, 1400);
+    
+    // Format average rating
+    setTimeout(() => {
+        document.getElementById('avgRating').textContent = stats.avgRating.toFixed(1);
+    }, 1600);
+}
+
+function initializeBrokerCards() {
+    // Add intersection observer for smooth loading
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        document.querySelectorAll('.broker-card').forEach(card => {
+            observer.observe(card);
+        });
+    }
+}
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            exportToExcel();
+        }
+        if (e.ctrlKey && e.key === 'j') {
+            e.preventDefault();
+            exportToJson();
+        }
+    });
+}
 
 function forwardBroker(index) {
     const broker = brokersData[index];
     
     if (!broker) {
-        alert('Makler-Daten nicht gefunden.');
+        Utils.showToast('Makler-Daten nicht gefunden', 'error');
         return;
     }
     
-    // Loading-Status anzeigen
     const card = document.querySelector(`[data-broker-id="${index}"]`);
-    const originalContent = card.innerHTML;
+    const button = card.querySelector('.btn-outline-secondary');
     
-    showLoadingSpinner(card);
+    // Loading state
+    Utils.setButtonLoading(button, true);
+    card.style.opacity = '0.7';
     
     fetch('/api/forward', {
         method: 'POST',
@@ -200,22 +290,35 @@ function forwardBroker(index) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            showSuccessMessage(`Makler "${broker.name}" erfolgreich an API gesendet.`);
-            highlightCard(card, 'success');
+            Utils.showToast(`"${broker.name}" erfolgreich gesendet`, 'success');
+            card.classList.add('highlight-success');
+            
+            // Add success indicator
+            const successBadge = document.createElement('div');
+            successBadge.className = 'position-absolute top-0 end-0 p-2';
+            successBadge.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+            card.style.position = 'relative';
+            card.appendChild(successBadge);
+            
+            setTimeout(() => {
+                card.classList.remove('highlight-success');
+                successBadge.remove();
+            }, 3000);
         } else {
-            showErrorMessage(`Fehler beim Senden: ${data.message || 'Unbekannter Fehler'}`);
-            highlightCard(card, 'danger');
+            Utils.showToast(`Fehler: ${data.message || 'Unbekannter Fehler'}`, 'error');
+            card.classList.add('highlight-danger');
+            setTimeout(() => card.classList.remove('highlight-danger'), 3000);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showErrorMessage('Fehler beim Senden der Daten.');
-        highlightCard(card, 'danger');
+        Utils.showToast('Netzwerkfehler beim Senden', 'error');
+        card.classList.add('highlight-danger');
+        setTimeout(() => card.classList.remove('highlight-danger'), 3000);
     })
     .finally(() => {
-        card.innerHTML = originalContent;
-        // Event-Listeners wieder hinzufügen
-        addDropdownListeners(card);
+        Utils.setButtonLoading(button, false);
+        card.style.opacity = '1';
     });
 }
 
@@ -224,7 +327,46 @@ function forwardAllBrokers() {
         return;
     }
     
-    const promises = brokersData.map((broker, index) => {
+    processedCount = 0;
+    successCount = 0;
+    
+    // Show progress bar
+    const progressContainer = document.getElementById('batchProgress');
+    const progressBar = progressContainer.querySelector('.progress-bar');
+    const progressText = progressContainer.querySelector('.text-muted');
+    
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = 'Beginne Batch-Verarbeitung...';
+    
+    // Disable export buttons during processing
+    document.querySelectorAll('.export-controls .btn').forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+    });
+    
+    // Process brokers in batches to avoid overwhelming the server
+    const batchSize = 3;
+    const batches = [];
+    
+    for (let i = 0; i < brokersData.length; i += batchSize) {
+        batches.push(brokersData.slice(i, i + batchSize));
+    }
+    
+    processBatches(batches, 0, progressBar, progressText, progressContainer);
+}
+
+function processBatches(batches, currentBatchIndex, progressBar, progressText, progressContainer) {
+    if (currentBatchIndex >= batches.length) {
+        // All batches processed
+        finalizeBatchProcessing(progressContainer, progressBar, progressText);
+        return;
+    }
+    
+    const currentBatch = batches[currentBatchIndex];
+    const promises = currentBatch.map((broker, batchIndex) => {
+        const globalIndex = currentBatchIndex * 3 + batchIndex;
+        
         return fetch('/api/forward', {
             method: 'POST',
             headers: {
@@ -233,119 +375,231 @@ function forwardAllBrokers() {
             body: JSON.stringify(broker)
         })
         .then(response => response.json())
-        .then(data => ({ index, success: data.status === 'success', data }))
-        .catch(error => ({ index, success: false, error: error.message }));
+        .then(data => ({ 
+            index: globalIndex, 
+            success: data.status === 'success', 
+            data,
+            broker 
+        }))
+        .catch(error => ({ 
+            index: globalIndex, 
+            success: false, 
+            error: error.message,
+            broker 
+        }));
     });
     
     Promise.all(promises).then(results => {
-        const successful = results.filter(r => r.success).length;
-        const failed = results.length - successful;
-        
-        if (failed === 0) {
-            showSuccessMessage(`Alle ${successful} Makler erfolgreich gesendet.`);
-        } else {
-            showErrorMessage(`${successful} erfolgreich, ${failed} fehlgeschlagen.`);
-        }
-        
-        // Cards entsprechend markieren
+        // Update counters
         results.forEach(result => {
+            processedCount++;
+            if (result.success) successCount++;
+            
+            // Update card visual state
             const card = document.querySelector(`[data-broker-id="${result.index}"]`);
-            highlightCard(card, result.success ? 'success' : 'danger');
+            if (card) {
+                if (result.success) {
+                    card.classList.add('highlight-success');
+                    setTimeout(() => card.classList.remove('highlight-success'), 2000);
+                } else {
+                    card.classList.add('highlight-danger');
+                    setTimeout(() => card.classList.remove('highlight-danger'), 2000);
+                }
+            }
         });
+        
+        // Update progress
+        const progress = (processedCount / brokersData.length) * 100;
+        progressBar.style.width = progress + '%';
+        progressText.textContent = `${processedCount}/${brokersData.length} verarbeitet (${successCount} erfolgreich)`;
+        
+        // Process next batch after short delay
+        setTimeout(() => {
+            processBatches(batches, currentBatchIndex + 1, progressBar, progressText, progressContainer);
+        }, 500);
     });
+}
+
+function finalizeBatchProcessing(progressContainer, progressBar, progressText) {
+    const failed = processedCount - successCount;
+    
+    progressBar.style.width = '100%';
+    progressBar.classList.remove('progress-bar-animated');
+    
+    if (failed === 0) {
+        progressBar.classList.add('bg-success');
+        progressText.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i>Alle ${successCount} Makler erfolgreich gesendet!`;
+        Utils.showToast(`Batch-Verarbeitung erfolgreich abgeschlossen`, 'success');
+    } else {
+        progressBar.classList.add('bg-warning');
+        progressText.innerHTML = `<i class="fas fa-exclamation-triangle text-warning me-1"></i>${successCount} erfolgreich, ${failed} fehlgeschlagen`;
+        Utils.showToast(`${successCount} erfolgreich, ${failed} fehlgeschlagen`, 'warning');
+    }
+    
+    // Re-enable buttons
+    setTimeout(() => {
+        document.querySelectorAll('.export-controls .btn').forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+        });
+        
+        // Hide progress after delay
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+            progressText.textContent = 'Verarbeitung läuft...';
+        }, 5000);
+    }, 2000);
 }
 
 function copyBrokerJson(index) {
     const broker = brokersData[index];
     const jsonString = JSON.stringify(broker, null, 2);
     
-    navigator.clipboard.writeText(jsonString).then(() => {
-        showSuccessMessage('JSON-Daten in Zwischenablage kopiert.');
-    }).catch(err => {
-        console.error('Fehler beim Kopieren:', err);
-        // Fallback für ältere Browser
-        const textArea = document.createElement('textarea');
-        textArea.value = jsonString;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        showSuccessMessage('JSON-Daten in Zwischenablage kopiert.');
+    Utils.copyToClipboard(jsonString).then(() => {
+        // Visual feedback
+        const card = document.querySelector(`[data-broker-id="${index}"]`);
+        const originalBg = card.style.backgroundColor;
+        card.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+        card.style.transition = 'background-color 0.3s';
+        
+        setTimeout(() => {
+            card.style.backgroundColor = originalBg;
+        }, 1000);
     });
 }
 
+function exportToExcel() {
+    const button = event.target;
+    Utils.setButtonLoading(button, true);
+    
+    // Show preparation toast
+    Utils.showToast('Excel-Export wird vorbereitet...', 'info');
+    
+    // Navigate to export
+    setTimeout(() => {
+        window.location.href = '/export/excel';
+        Utils.setButtonLoading(button, false);
+    }, 1000);
+}
+
+function exportToJson() {
+    const button = event.target;
+    Utils.setButtonLoading(button, true);
+    
+    // Show preparation toast
+    Utils.showToast('JSON-Export wird vorbereitet...', 'info');
+    
+    // Navigate to export
+    setTimeout(() => {
+        window.location.href = '/export/json';
+        Utils.setButtonLoading(button, false);
+    }, 1000);
+}
+
+// Legacy function for backward compatibility
 function exportAsJson() {
-    const jsonString = JSON.stringify(brokersData, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    exportToJson();
+}
+
+// Enhanced card interaction
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects and click feedback
+    document.querySelectorAll('.broker-card').forEach((card, index) => {
+        // Add click ripple effect
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('.dropdown, .btn-group')) return;
+            
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = 60;
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                transform: scale(0);
+                animation: ripple 0.6s linear;
+                background-color: rgba(13, 110, 253, 0.3);
+                left: ${x}px;
+                top: ${y}px;
+                width: ${size}px;
+                height: ${size}px;
+            `;
+            
+            this.style.position = 'relative';
+            this.style.overflow = 'hidden';
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+        
+        // Add accessibility improvements
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('role', 'article');
+        card.setAttribute('aria-label', `Versicherungsmakler: ${brokersData[index]?.name || 'Unbekannt'}`);
+    });
     
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `versicherungsmakler_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showSuccessMessage('JSON-Export gestartet.');
-}
-
-function showLoadingSpinner(element) {
-    element.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <div class="mt-2">Sende Daten...</div>
-        </div>
-    `;
-}
-
-function highlightCard(card, type) {
-    card.classList.remove('border-success', 'border-danger');
-    card.classList.add(`border-${type}`);
-    setTimeout(() => {
-        card.classList.remove(`border-${type}`);
-    }, 3000);
-}
-
-function showSuccessMessage(message) {
-    showAlert(message, 'success');
-}
-
-function showErrorMessage(message) {
-    showAlert(message, 'danger');
-}
-
-function showAlert(message, type) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.parentNode.removeChild(alertDiv);
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        const focusedCard = document.activeElement;
+        if (!focusedCard.classList.contains('broker-card')) return;
+        
+        let nextCard;
+        const cards = Array.from(document.querySelectorAll('.broker-card'));
+        const currentIndex = cards.indexOf(focusedCard);
+        
+        switch(e.key) {
+            case 'ArrowDown':
+            case 'ArrowRight':
+                e.preventDefault();
+                nextCard = cards[currentIndex + 1] || cards[0];
+                nextCard.focus();
+                break;
+            case 'ArrowUp':
+            case 'ArrowLeft':
+                e.preventDefault();
+                nextCard = cards[currentIndex - 1] || cards[cards.length - 1];
+                nextCard.focus();
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                const apiButton = focusedCard.querySelector('.btn-outline-secondary');
+                if (apiButton) apiButton.click();
+                break;
         }
-    }, 5000);
+    });
+});
+
+// Add CSS for ripple animation
+if (!document.getElementById('ripple-styles')) {
+    const style = document.createElement('style');
+    style.id = 'ripple-styles';
+    style.textContent = `
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
-function addDropdownListeners(card) {
-    // Bootstrap Dropdown Funktionalität wieder aktivieren
-    const dropdownToggles = card.querySelectorAll('.dropdown-toggle');
-    dropdownToggles.forEach(toggle => {
-        new bootstrap.Dropdown(toggle);
+// Performance monitoring for this page
+if ('performance' in window) {
+    window.addEventListener('load', function() {
+        setTimeout(() => {
+            const perfData = performance.getEntriesByType('navigation')[0];
+            if (perfData && perfData.loadEventEnd - perfData.fetchStart < 3000) {
+                console.log('🚀 Schnelle Ergebnisseite geladen');
+            }
+        }, 100);
     });
 }
-
-// Initial Dropdown-Listeners hinzufügen
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.broker-card').forEach(addDropdownListeners);
-});
 </script>
 {% endblock %}

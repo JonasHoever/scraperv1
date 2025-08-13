@@ -3,31 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Versicherungsmakler Finder{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <meta name="description" content="Finden Sie qualifizierte Versicherungsmakler in Ihrer Nähe. Kostenlose Suche mit detaillierten Kontaktinformationen und Export-Funktionen.">
+    <meta name="keywords" content="Versicherungsmakler, Versicherung, Makler finden, Deutschland, Kontakt, Excel Export">
+    <meta name="author" content="Versicherungsmakler Finder">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Versicherungsmakler Finder - Qualifizierte Makler in Ihrer Nähe">
+    <meta property="og:description" content="Kostenlose Suche nach Versicherungsmaklern mit intelligenter Standorterkennung und detaillierten Kontaktinformationen.">
+    <meta property="og:image" content="{{ url_for('static', filename='img/og-image.jpg') }}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="Versicherungsmakler Finder - Qualifizierte Makler in Ihrer Nähe">
+    <meta property="twitter:description" content="Finden Sie qualifizierte Versicherungsmakler in Ihrer Nähe">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='css/style.css') }}?v=3.0" rel="stylesheet">
+    
+    <!-- Theme-Flackern Prevention -->
+    <script>
+        // Sofortiges Theme-Loading vor dem Rendern der Seite
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+            
+            // Setze das Theme sofort auf das HTML-Element (beide Attribute für Kompatibilität)
+            if (currentTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+                document.documentElement.classList.add('dark-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+                document.documentElement.classList.remove('dark-theme');
+            }
+            
+            // Speichere das aktuelle Theme
+            localStorage.setItem('theme', currentTheme);
+        })();
+    </script>
+    
+    <!-- Preload wichtige Ressourcen -->
+    <link rel="preload" href="{{ url_for('static', filename='js/app.js') }}?v=2.7" as="script">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    
+    <title>{% block title %}Versicherungsmakler Finder - Qualifizierte Makler in Ihrer Nähe{% endblock %}</title>
+    
+    {% block head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <!-- Enhanced Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="fas fa-shield-alt me-2"></i>
-                Versicherungsmakler Finder
+                <span class="d-none d-sm-inline">Versicherungsmakler Finder</span>
+                <span class="d-sm-none">VM Finder</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'index' }}" href="{{ url_for('index') }}">
                             <i class="fas fa-home me-1"></i>Startseite
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('api_test_connection') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'upload_excel' }}" href="{{ url_for('upload_excel') }}">
+                            <i class="fas fa-cloud-upload-alt me-1"></i>Excel Upload
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'api_settings' }}" href="{{ url_for('api_settings') }}">
                             <i class="fas fa-cog me-1"></i>API Config
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="exportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download me-1"></i>Export
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                            <li><a class="dropdown-item" href="/export/excel"><i class="fas fa-file-excel me-2"></i>Excel Export</a></li>
+                            <li><a class="dropdown-item" href="/export/json"><i class="fas fa-file-code me-2"></i>JSON Export</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="showSafeMessage('Führen Sie zuerst eine Suche durch')"><i class="fas fa-info-circle me-2"></i>Hinweis</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="themeToggle" title="Design umschalten">
+                            <i class="fas fa-moon" id="themeIcon"></i>
                         </a>
                     </li>
                 </ul>
@@ -35,13 +112,21 @@
         </div>
     </nav>
 
+    <!-- Spacer für fixed navbar -->
+    <div style="height: 70px;"></div>
+
+    <!-- Main Content -->
     <main class="container mt-4">
+        <!-- Enhanced Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'info' if category == 'info' else 'success' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'info' if category == 'info' else 'success' }} alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'exclamation-circle' if category == 'warning' else 'info-circle' if category == 'info' else 'check-circle' }} me-2"></i>
+                            <div>{{ message }}</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -50,24 +135,390 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-light mt-5 py-4">
+    <!-- Enhanced Footer -->
+    <footer class="mt-5 py-4">
         <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Versicherungsmakler Finder</h5>
-                    <p class="text-muted">Finden Sie qualifizierte Versicherungsmakler in Ihrer Nähe.</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="text-muted">
-                        <small>Powered by Google Maps API &amp; Flask</small>
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <p class="text-muted mb-0">
+                        <small>
+                            &copy; 2024 Versicherungsmakler Finder - Die intelligente Lösung für qualifizierte Makler. 
+                            <a href="#" class="text-decoration-none">Datenschutz</a> | 
+                            <a href="#" class="text-decoration-none">Impressum</a>
+                        </small>
                     </p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <small class="text-muted">
+                        <i class="fas fa-code me-1"></i>Version 2.0
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Powered by WunschAutomate -->
+            <div class="row mt-3">
+                <div class="col-12 text-center">
+                    <div class="powered-by-footer">
+                        <div class="powered-by-content-minimal">
+                            <div class="powered-by-icon-small">
+                                <i class="fas fa-cogs"></i>
+                            </div>
+                            <div class="powered-by-text-small">
+                                <span class="powered-label-small">Powered by</span>
+                                <a href="#" class="brand-name-small text-decoration-none">WunschAutomate</a>
+                            </div>
+                            <div class="powered-by-animation-small">
+                                <div class="flow-dot-small"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <!-- Back to Top Button -->
+    <button class="btn btn-primary position-fixed shadow" id="backToTop" style="bottom: 20px; right: 20px; z-index: 1050; display: none; border-radius: 50%; width: 50px; height: 50px;" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=2.7"></script>
+    
+    <script>
+        // Safe message display function
+        function showSafeMessage(message, type = 'info') {
+            try {
+                // Try to use Utils if available
+                if (typeof Utils !== 'undefined' && Utils.showToast) {
+                    Utils.showToast(message, type);
+                    return;
+                }
+            } catch (e) {
+                console.log('Utils not available, using fallback message');
+            }
+            
+            // Fallback: create simple toast
+            showSimpleToast(message, type);
+        }
+        
+        // Theme Toggle - Fixed Version
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (!icon || !themeToggle) {
+                console.log('Theme elements not found');
+                return;
+            }
+            
+            try {
+                const currentTheme = html.getAttribute('data-theme') || 'light';
+                console.log('Current theme:', currentTheme);
+                
+                // Erstelle Overlay für smooth transition
+                createThemeTransitionOverlay();
+                
+                // Temporäre Klasse hinzufügen, um Übergänge zu kontrollieren
+                html.classList.add('theme-loading');
+                themeToggle.classList.add('switching');
+                
+                // Theme wechseln nach kurzer Verzögerung für perfekte Synchronisation
+                setTimeout(() => {
+                    if (currentTheme === 'dark') {
+                        html.setAttribute('data-theme', 'light');
+                        html.setAttribute('data-bs-theme', 'light');
+                        html.classList.remove('dark-theme');
+                        icon.className = 'fas fa-moon';
+                        localStorage.setItem('theme', 'light');
+                        console.log('Switched to light theme');
+                        showSafeMessage('☀️ Helles Design aktiviert', 'success');
+                    } else {
+                        html.setAttribute('data-theme', 'dark');
+                        html.setAttribute('data-bs-theme', 'dark');
+                        html.classList.add('dark-theme');
+                        icon.className = 'fas fa-sun';
+                        localStorage.setItem('theme', 'dark');
+                        console.log('Switched to dark theme');
+                        showSafeMessage('🌙 Dunkles Design aktiviert', 'success');
+                    }
+                    
+                    // Theme-loading Klasse entfernen für ultra-smooth transitions
+                    setTimeout(() => {
+                        html.classList.remove('theme-loading');
+                        themeToggle.classList.remove('switching');
+                    }, 120);
+                    
+                }, 200);
+                
+            } catch (error) {
+                console.log('Theme toggle error:', error);
+                html.classList.remove('theme-loading');
+                themeToggle.classList.remove('switching');
+                showSimpleToast('Design wurde geändert', 'info');
+            }
+        }
+        
+        function createThemeTransitionOverlay() {
+            // Entferne existierendes Overlay falls vorhanden
+            const existingOverlay = document.querySelector('.theme-switch-overlay');
+            if (existingOverlay) {
+                existingOverlay.remove();
+            }
+            
+            // Erstelle neues Overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'theme-switch-overlay';
+            document.body.appendChild(overlay);
+            
+            // Aktiviere Animation
+            requestAnimationFrame(() => {
+                overlay.classList.add('active');
+            });
+            
+            // Erstelle visuelle "Sound Wave" Effekte
+            createSoundWaveEffect();
+            
+            // Entferne Overlay nach Animation
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.remove();
+                    }
+                }, 400);
+            }, 800);
+        }
+        
+        function createSoundWaveEffect() {
+            const themeToggle = document.getElementById('themeToggle');
+            if (!themeToggle) return;
+            
+            // Erstelle mehrere konzentrische Wellen
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const wave = document.createElement('div');
+                    wave.style.cssText = `
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 20px;
+                        height: 20px;
+                        border: 2px solid rgba(106, 126, 234, 0.6);
+                        border-radius: 50%;
+                        transform: translate(-50%, -50%);
+                        animation: soundWave 1s ease-out forwards;
+                        pointer-events: none;
+                        z-index: 1000;
+                    `;
+                    
+                    themeToggle.style.position = 'relative';
+                    themeToggle.appendChild(wave);
+                    
+                    // Entferne Welle nach Animation
+                    setTimeout(() => {
+                        if (wave.parentNode) {
+                            wave.remove();
+                        }
+                    }, 1000);
+                }, i * 150);
+            }
+        }
+        
+        // Simple toast function that doesn't depend on external libraries
+        function showSimpleToast(message, type = 'info') {
+            try {
+                // Remove any existing toasts first
+                const existingToasts = document.querySelectorAll('.theme-toast-container');
+                existingToasts.forEach(toast => toast.remove());
+                
+                // Create toast element
+                const toastContainer = document.createElement('div');
+                toastContainer.className = 'theme-toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '1070';
+                
+                const bgClass = type === 'success' ? 'bg-success' : 
+                               type === 'error' ? 'bg-danger' : 
+                               type === 'warning' ? 'bg-warning' : 'bg-info';
+                
+                toastContainer.innerHTML = `
+                    <div class="toast show ${bgClass} text-white" role="alert">
+                        <div class="toast-header ${bgClass} text-white border-0">
+                            <i class="fas fa-palette me-2"></i>
+                            <strong class="me-auto">Theme</strong>
+                            <button type="button" class="btn-close btn-close-white" onclick="this.closest('.theme-toast-container').remove()"></button>
+                        </div>
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(toastContainer);
+                
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    try {
+                        if (toastContainer.parentNode) {
+                            toastContainer.style.opacity = '0';
+                            toastContainer.style.transition = 'opacity 0.3s';
+                            setTimeout(() => {
+                                if (toastContainer.parentNode) {
+                                    toastContainer.remove();
+                                }
+                            }, 300);
+                        }
+                    } catch (e) {
+                        console.log('Toast removal error:', e);
+                    }
+                }, 3000);
+                
+            } catch (error) {
+                console.log('Simple toast error:', error);
+                // Last fallback - just console log
+                console.log(`${type.toUpperCase()}: ${message}`);
+            }
+        }
+        
+        // Load saved theme (this syncs with the inline script in head) - Koordinierte Version
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verhindere mehrfache Theme-Initialisierung
+            if (window.themeInitialized) {
+                console.log('ℹ️ Theme bereits initialisiert, überspringe...');
+                return;
+            }
+            window.themeInitialized = true;
+            
+            try {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                const html = document.documentElement;
+                const themeIcon = document.getElementById('themeIcon');
+                
+                console.log('🎨 DOMContentLoaded - Setting up theme:', savedTheme);
+                console.log('Current HTML attributes:', {
+                    'data-theme': html.getAttribute('data-theme'),
+                    'data-bs-theme': html.getAttribute('data-bs-theme')
+                });
+                
+                // Sync icon with current theme
+                if (themeIcon) {
+                    if (savedTheme === 'dark') {
+                        themeIcon.className = 'fas fa-sun';
+                        console.log('Set theme icon to sun (dark mode)');
+                    } else {
+                        themeIcon.className = 'fas fa-moon';
+                        console.log('Set theme icon to moon (light mode)');
+                    }
+                } else {
+                    console.error('Theme icon not found!');
+                }
+                
+                // Ensure both attributes are set for compatibility
+                html.setAttribute('data-theme', savedTheme);
+                html.setAttribute('data-bs-theme', savedTheme);
+                
+                console.log('After setup - HTML attributes:', {
+                    'data-theme': html.getAttribute('data-theme'),
+                    'data-bs-theme': html.getAttribute('data-bs-theme'),
+                    'has-dark-theme-class': html.classList.contains('dark-theme')
+                });
+                
+                // Setup back to top button
+                setupBackToTop();
+                
+                // Initialize theme toggle
+                const themeToggle = document.getElementById('themeToggle');
+                if (themeToggle) {
+                    console.log('Theme toggle button found, setting up event listener...');
+                    // Remove any existing event listeners
+                    themeToggle.removeAttribute('onclick');
+                    themeToggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('Theme toggle button clicked!');
+                        toggleTheme();
+                    });
+                    console.log('Theme toggle event listener attached');
+                } else {
+                    console.error('Theme toggle button not found!');
+                }
+                
+                // Remove theme-loading class if still present
+                setTimeout(() => {
+                    html.classList.remove('theme-loading');
+                    console.log('Removed theme-loading class');
+                }, 200);
+                
+            } catch (error) {
+                console.error('Theme initialization error:', error);
+            }
+        });
+        
+        function setupBackToTop() {
+            try {
+                const backToTopButton = document.getElementById('backToTop');
+                if (!backToTopButton) return;
+                
+                // Throttle function
+                let ticking = false;
+                function throttle(func) {
+                    if (!ticking) {
+                        requestAnimationFrame(() => {
+                            func();
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                }
+                
+                window.addEventListener('scroll', function() {
+                    throttle(function() {
+                        try {
+                            if (window.scrollY > 300) {
+                                backToTopButton.style.display = 'block';
+                            } else {
+                                backToTopButton.style.display = 'none';
+                            }
+                        } catch (error) {
+                            console.log('Back to top scroll error:', error);
+                        }
+                    });
+                });
+            } catch (error) {
+                console.log('Back to top setup error:', error);
+            }
+        }
+        
+        function scrollToTop() {
+            try {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            } catch (error) {
+                console.log('Scroll to top error:', error);
+                // Fallback
+                window.scrollTo(0, 0);
+            }
+        }
+    </script>
+    
     {% block scripts %}{% endblock %}
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator && 'caches' in window) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

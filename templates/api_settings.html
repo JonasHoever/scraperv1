@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}API-Einstellungen - Versicherungsmakler Finder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-cogs me-2"></i>API-Einstellungen
+            </h1>
+            <p class="lead">Konfigurieren Sie die externe API für die Datenweiterleitung</p>
+        </div>
+
+        <!-- API Settings Card -->
+        <div class="card glass-effect shadow-strong mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plug me-2"></i>API-Konfiguration
+                    </h4>
+                    <button class="btn btn-outline-light btn-sm" onclick="testConnection()">
+                        <i class="fas fa-wifi me-1"></i>Verbindung testen
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="apiSettingsForm" class="needs-validation" novalidate>
+                    <!-- API URL -->
+                    <div class="mb-4">
+                        <label for="external_api_url" class="form-label fw-bold">
+                            <i class="fas fa-link me-2 text-primary"></i>
+                            API-Endpoint URL
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-globe"></i>
+                            </span>
+                            <input type="url" 
+                                   class="form-control form-control-lg" 
+                                   id="external_api_url" 
+                                   name="external_api_url" 
+                                   placeholder="https://api.beispiel.com/webhook"
+                                   value="{{ settings.external_api_url or '' }}">
+                            <button class="btn btn-outline-secondary" type="button" onclick="showExampleUrls()">
+                                <i class="fas fa-lightbulb"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Die vollständige URL des API-Endpoints, an den die Makler-Daten gesendet werden sollen.
+                        </div>
+                        <div class="invalid-feedback">
+                            Bitte geben Sie eine gültige URL ein (z.B. https://api.beispiel.com/webhook).
+                        </div>
+                    </div>
+
+                    <!-- API Format -->
+                    <div class="mb-4">
+                        <label for="api_send_format" class="form-label fw-bold">
+                            <i class="fas fa-code me-2 text-primary"></i>
+                            Datenformat
+                        </label>
+                        <select class="form-select form-select-lg" id="api_send_format" name="api_send_format">
+                            <option value="enhanced" {{ 'selected' if settings.api_send_format == 'enhanced' else '' }}>
+                                Enhanced Format (empfohlen) - Vollständige Daten mit Metadaten
+                            </option>
+                            <option value="basic" {{ 'selected' if settings.api_send_format == 'basic' else '' }}>
+                                Basic Format - Nur Grunddaten
+                            </option>
+                            <option value="custom" {{ 'selected' if settings.api_send_format == 'custom' else '' }}>
+                                Custom Format - Angepasstes Schema
+                            </option>
+                        </select>
+                        <div class="form-text">
+                            <i class="fas fa-palette me-1"></i>
+                            Wählen Sie das JSON-Format für die Datenübertragung.
+                            <button type="button" class="btn btn-link btn-sm p-0 ms-2" onclick="showFormatExamples()">
+                                Beispiele anzeigen
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Authentication -->
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label for="external_api_key" class="form-label fw-bold">
+                                <i class="fas fa-key me-2 text-warning"></i>
+                                API-Key (optional)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-shield-alt"></i>
+                                </span>
+                                <input type="password" 
+                                       class="form-control" 
+                                       id="external_api_key" 
+                                       name="external_api_key" 
+                                       placeholder="your-api-key-here"
+                                       value="{{ settings.external_api_key or '' }}">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('external_api_key')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Für X-API-Key Header-Authentifizierung</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-4">
+                            <label for="external_api_token" class="form-label fw-bold">
+                                <i class="fas fa-user-shield me-2 text-info"></i>
+                                Bearer Token (optional)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-ticket-alt"></i>
+                                </span>
+                                <input type="password" 
+                                       class="form-control" 
+                                       id="external_api_token" 
+                                       name="external_api_token" 
+                                       placeholder="Bearer token oder JWT"
+                                       value="{{ settings.external_api_token or '' }}">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('external_api_token')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Für Authorization: Bearer Header</div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Settings -->
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label for="timeout" class="form-label fw-bold">
+                                <i class="fas fa-clock me-2 text-secondary"></i>
+                                Timeout (Sekunden)
+                            </label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="timeout" 
+                                   name="timeout" 
+                                   min="5" 
+                                   max="300" 
+                                   value="{{ settings.timeout or '30' }}">
+                            <div class="form-text">Zeitüberschreitung für API-Requests (5-300 Sekunden)</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-4">
+                            <label for="retry_attempts" class="form-label fw-bold">
+                                <i class="fas fa-redo me-2 text-secondary"></i>
+                                Wiederholungsversuche
+                            </label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="retry_attempts" 
+                                   name="retry_attempts" 
+                                   min="1" 
+                                   max="10" 
+                                   value="{{ settings.retry_attempts or '3' }}">
+                            <div class="form-text">Anzahl Wiederholungen bei fehlgeschlagenen Requests</div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex gap-3 pt-3">
+                        <button type="submit" class="btn btn-primary btn-lg hover-lift flex-fill">
+                            <i class="fas fa-save me-2"></i>Einstellungen speichern
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-lg hover-lift" onclick="testConnection()">
+                            <i class="fas fa-flask me-2"></i>Testen
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary btn-lg hover-lift">
+                            <i class="fas fa-undo me-2"></i>Zurücksetzen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Example URLs Card -->
+        <div class="card glass-effect mb-4" id="exampleUrlsCard" style="display: none;">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Test-URLs für Entwicklung
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-primary">
+                            <i class="fab fa-webhook me-1"></i>Webhook.site
+                        </h6>
+                        <p class="small text-muted mb-2">Kostenloser Webhook-Tester</p>
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="openWebhookSite()">
+                            <i class="fas fa-external-link-alt me-1"></i>Webhook erstellen
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-success">
+                            <i class="fas fa-inbox me-1"></i>RequestBin
+                        </h6>
+                        <p class="small text-muted mb-2">HTTP Request Inspector</p>
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="openRequestBin()">
+                            <i class="fas fa-external-link-alt me-1"></i>Bin erstellen
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-warning">
+                            <i class="fas fa-cog me-1"></i>Pipedream
+                        </h6>
+                        <p class="small text-muted mb-2">Workflow Automation</p>
+                        <button class="btn btn-outline-warning btn-sm w-100" onclick="openPipedream()">
+                            <i class="fas fa-external-link-alt me-1"></i>Workflow erstellen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Format Examples Card -->
+        <div class="card glass-effect mb-4" id="formatExamplesCard" style="display: none;">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-code me-2"></i>JSON-Format Beispiele
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <ul class="nav nav-pills mb-3" id="formatTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="enhanced-tab" data-bs-toggle="pill" data-bs-target="#enhanced" type="button" role="tab">Enhanced</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="basic-tab" data-bs-toggle="pill" data-bs-target="#basic" type="button" role="tab">Basic</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="custom-tab" data-bs-toggle="pill" data-bs-target="#custom" type="button" role="tab">Custom</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="formatTabsContent">
+                            <div class="tab-pane fade show active" id="enhanced" role="tabpanel">
+                                <pre class="bg-dark text-light p-3 rounded"><code id="enhancedFormat"></code></pre>
+                            </div>
+                            <div class="tab-pane fade" id="basic" role="tabpanel">
+                                <pre class="bg-dark text-light p-3 rounded"><code id="basicFormat"></code></pre>
+                            </div>
+                            <div class="tab-pane fade" id="custom" role="tabpanel">
+                                <pre class="bg-dark text-light p-3 rounded"><code id="customFormat"></code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="card glass-effect" id="connectionStatusCard" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-wifi me-2"></i>Verbindungstest
+                </h5>
+            </div>
+            <div class="card-body" id="connectionResult">
+                <!-- Test results will be inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Powered by WunschAutomate -->
+<div class="row mt-5">
+    <div class="col-12 text-center">
+        <div class="powered-by-container">
+            <div class="powered-by-card glass-effect">
+                <div class="powered-by-content">
+                    <div class="powered-by-icon">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <div class="powered-by-text">
+                        <span class="powered-label">Powered by</span>
+                        <span class="brand-name">WunschAutomate</span>
+                        <div class="brand-tagline">Automation Made Simple</div>
+                    </div>
+                    <div class="powered-by-animation">
+                        <div class="automation-flow">
+                            <div class="flow-dot"></div>
+                            <div class="flow-dot"></div>
+                            <div class="flow-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// API Settings JavaScript
+let isPasswordVisible = {};
+
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.nextElementSibling.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        button.className = 'fas fa-eye-slash';
+        isPasswordVisible[fieldId] = true;
+    } else {
+        field.type = 'password';
+        button.className = 'fas fa-eye';
+        isPasswordVisible[fieldId] = false;
+    }
+}
+
+function showExampleUrls() {
+    const card = document.getElementById('exampleUrlsCard');
+    const isVisible = card.style.display !== 'none';
+    
+    if (isVisible) {
+        card.style.display = 'none';
+    } else {
+        card.style.display = 'block';
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function showFormatExamples() {
+    const card = document.getElementById('formatExamplesCard');
+    const isVisible = card.style.display !== 'none';
+    
+    if (isVisible) {
+        card.style.display = 'none';
+    } else {
+        loadFormatExamples();
+        card.style.display = 'block';
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function loadFormatExamples() {
+    const enhancedFormat = {
+        "broker_info": {
+            "name": "Mustermann Versicherungsmakler GmbH",
+            "contact_person": "Max Mustermann",
+            "address": "Beispielstraße 123, 12345 Beispielstadt",
+            "phone": "+49 30 12345678",
+            "email": "info@mustermann-makler.de",
+            "website": "https://mustermann-makler.de",
+            "rating": 4.8,
+            "total_reviews": 96,
+            "google_place_id": "ChIJ..."
+        },
+        "scraped_data": {
+            "contact_person": "Max Mustermann",
+            "email": "info@mustermann-makler.de",
+            "scraped_successfully": true
+        },
+        "metadata": {
+            "source": "Versicherungsmakler-Finder",
+            "scraped_at": "2025-08-13T10:57:00Z",
+            "data_quality": "high"
+        }
+    };
+
+    const basicFormat = {
+        "name": "Mustermann Versicherungsmakler GmbH",
+        "phone": "+49 30 12345678",
+        "website": "https://mustermann-makler.de",
+        "address": "Beispielstraße 123, 12345 Beispielstadt",
+        "rating": 4.8
+    };
+
+    const customFormat = {
+        "companyName": "Mustermann Versicherungsmakler GmbH",
+        "contactPerson": "Max Mustermann",
+        "phoneNumber": "+49 30 12345678",
+        "emailAddress": "info@mustermann-makler.de",
+        "industry": "Versicherungsmakler",
+        "lastUpdated": "2025-08-13T10:57:00Z"
+    };
+
+    document.getElementById('enhancedFormat').textContent = JSON.stringify(enhancedFormat, null, 2);
+    document.getElementById('basicFormat').textContent = JSON.stringify(basicFormat, null, 2);
+    document.getElementById('customFormat').textContent = JSON.stringify(customFormat, null, 2);
+}
+
+function openWebhookSite() {
+    window.open('https://webhook.site/', '_blank');
+}
+
+function openRequestBin() {
+    window.open('https://requestbin.com/', '_blank');
+}
+
+function openPipedream() {
+    window.open('https://pipedream.com/', '_blank');
+}
+
+async function testConnection() {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    
+    // Loading state
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Teste Verbindung...';
+    button.disabled = true;
+    
+    // Show status card
+    const statusCard = document.getElementById('connectionStatusCard');
+    const resultDiv = document.getElementById('connectionResult');
+    statusCard.style.display = 'block';
+    
+    resultDiv.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Testing...</span>
+            </div>
+            <div class="mt-2">Verbindung wird getestet...</div>
+        </div>
+    `;
+
+    try {
+        const response = await fetch('/api/test-connection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-check-circle fa-2x text-success me-3"></i>
+                        <div>
+                            <h5 class="mb-1">Verbindung erfolgreich!</h5>
+                            <small class="text-muted">API-Endpoint: ${result.api_url}</small>
+                        </div>
+                    </div>
+                    <details class="mt-3">
+                        <summary class="btn btn-sm btn-outline-success">Response Details</summary>
+                        <pre class="mt-2 bg-light p-2 rounded small">${JSON.stringify(result.response, null, 2)}</pre>
+                    </details>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger me-3"></i>
+                        <div>
+                            <h5 class="mb-1">Verbindung fehlgeschlagen</h5>
+                            <small class="text-muted">${result.message}</small>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <strong>Mögliche Lösungen:</strong>
+                        <ul class="mt-1 mb-0">
+                            <li>Überprüfen Sie die API-URL</li>
+                            <li>Prüfen Sie die Authentifizierung</li>
+                            <li>Stellen Sie sicher, dass der Endpoint POST-Requests akzeptiert</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-times-circle fa-2x text-danger me-3"></i>
+                    <div>
+                        <h5 class="mb-1">Netzwerkfehler</h5>
+                        <small class="text-muted">${error.message}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+// Form validation
+document.getElementById('apiSettingsForm').addEventListener('submit', function(e) {
+    const apiUrl = document.getElementById('external_api_url').value.trim();
+    
+    if (apiUrl && !isValidUrl(apiUrl)) {
+        e.preventDefault();
+        Utils.showToast('Bitte geben Sie eine gültige URL ein', 'error');
+        document.getElementById('external_api_url').focus();
+        return;
+    }
+});
+
+function isValidUrl(string) {
+    try {
+        const url = new URL(string);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+        return false;
+    }
+}
+
+// Auto-save functionality
+let autoSaveTimeout;
+function setupAutoSave() {
+    const inputs = document.querySelectorAll('#apiSettingsForm input, #apiSettingsForm select');
+    
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                // Save to localStorage as backup
+                const formData = new FormData(document.getElementById('apiSettingsForm'));
+                const data = Object.fromEntries(formData);
+                Utils.storage.set('apiSettingsBackup', data);
+            }, 2000);
+        });
+    });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    setupAutoSave();
+    
+    // Load backup if exists
+    const backup = Utils.storage.get('apiSettingsBackup');
+    if (backup) {
+        console.log('Auto-save backup available');
+    }
+});
+</script>
+
+<style>
+/* Powered by WunschAutomate Styling */
+.powered-by-container {
+    margin: 2rem 0;
+}
+
+.powered-by-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 1.5rem 2rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.powered-by-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.powered-by-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.powered-by-icon {
+    font-size: 2rem;
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: iconPulse 2s ease-in-out infinite alternate;
+}
+
+.powered-by-text {
+    flex: 1;
+    text-align: center;
+}
+
+.powered-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.2rem;
+}
+
+.brand-name {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.brand-tagline {
+    font-size: 0.7rem;
+    color: #888;
+    font-style: italic;
+    margin-top: 0.2rem;
+}
+
+.powered-by-animation {
+    width: 40px;
+}
+
+.automation-flow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 20px;
+}
+
+.flow-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    animation: flowAnimation 2s ease-in-out infinite;
+}
+
+.flow-dot:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.flow-dot:nth-child(3) {
+    animation-delay: 0.6s;
+}
+
+@keyframes iconPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.1); }
+}
+
+@keyframes flowAnimation {
+    0%, 100% { 
+        transform: scale(0.8);
+        opacity: 0.6;
+    }
+    50% { 
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .powered-by-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .powered-label {
+        color: #aaa;
+    }
+    
+    .brand-tagline {
+        color: #999;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .powered-by-content {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .powered-by-card {
+        padding: 1rem;
+        margin: 1rem;
+    }
+    
+    .brand-name {
+        font-size: 1.3rem;
+    }
+}
+</style>
+{% endblock %}

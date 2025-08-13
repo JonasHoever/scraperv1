@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Excel Upload - Versicherungsmakler Finder{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="hero-content text-center">
+                    <h1 class="display-4 fw-bold mb-4">
+                        <i class="fas fa-cloud-upload-alt me-3"></i>
+                        Excel Upload
+                    </h1>
+                    <p class="lead mb-5">
+                        Laden Sie eine bestehende Excel-Liste mit Versicherungsmaklern hoch und finden Sie automatisch weitere Makler in derselben Zone, die noch nicht in Ihrer Liste enthalten sind.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Upload Form -->
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-excel me-2"></i>
+                        Excel-Datei hochladen
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <!-- File Upload -->
+                        <div class="mb-4">
+                            <label for="file" class="form-label fw-bold">
+                                <i class="fas fa-file-upload me-2"></i>
+                                Excel-Datei auswählen
+                            </label>
+                            <input type="file" 
+                                   class="form-control form-control-lg" 
+                                   id="file" 
+                                   name="file" 
+                                   accept=".xlsx,.xls" 
+                                   required>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Erlaubte Formate: .xlsx, .xls (max. 16MB)
+                            </div>
+                        </div>
+
+                        <!-- Search Parameters -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <label for="location" class="form-label fw-bold">
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                    Suchbereich (PLZ oder Stadt)
+                                </label>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="location" 
+                                       name="location" 
+                                       placeholder="z.B. 10117, Berlin, Hamburg..." 
+                                       required>
+                                <div class="form-text">
+                                    Geben Sie die Postleitzahl oder den Stadtnamen ein, in dem nach zusätzlichen Maklern gesucht werden soll.
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="radius" class="form-label fw-bold">
+                                    <i class="fas fa-circle-notch me-2"></i>
+                                    Radius (km)
+                                </label>
+                                <select class="form-select form-select-lg" id="radius" name="radius">
+                                    <option value="5">5 km</option>
+                                    <option value="10" selected>10 km</option>
+                                    <option value="15">15 km</option>
+                                    <option value="20">20 km</option>
+                                    <option value="25">25 km</option>
+                                    <option value="50">50 km</option>
+                                    <option value="100">100 km</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Expected Excel Format Info -->
+                        <div class="alert alert-info mb-4">
+                            <h6 class="fw-bold mb-2">
+                                <i class="fas fa-table me-2"></i>
+                                Erwartetes Excel-Format
+                            </h6>
+                            <p class="mb-2">Ihre Excel-Datei sollte folgende Spalten enthalten (Reihenfolge egal):</p>
+                            <ul class="mb-0">
+                                <li><strong>Name/Firmenname:</strong> Name des Maklers oder der Firma</li>
+                                <li><strong>Adresse/Address:</strong> Vollständige Adresse</li>
+                                <li><strong>Telefon/Phone:</strong> Telefonnummer (optional)</li>
+                                <li><strong>Email/E-Mail:</strong> E-Mail-Adresse (optional)</li>
+                                <li><strong>Website/URL:</strong> Webseite (optional)</li>
+                            </ul>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+                                <span id="submitText">
+                                    <i class="fas fa-search me-2"></i>
+                                    Upload & Suchen
+                                </span>
+                                <span id="loadingText" class="d-none">
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    Verarbeitung läuft...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="card mt-4 border-0 bg-light upload-instructions-card">
+                <div class="card-body">
+                    <h5 class="card-title upload-instructions-title">
+                        <i class="fas fa-lightbulb me-2 text-warning"></i>
+                        Wie funktioniert es?
+                    </h5>
+                    <ol class="mb-0 upload-instructions-list">
+                        <li class="upload-instruction-item">Laden Sie Ihre Excel-Datei mit bestehenden Versicherungsmaklern hoch</li>
+                        <li class="upload-instruction-item">Geben Sie den Suchbereich an (Postleitzahl oder Stadt)</li>
+                        <li class="upload-instruction-item">Wählen Sie den Suchradius aus</li>
+                        <li class="upload-instruction-item">Das System findet automatisch weitere Makler in derselben Zone</li>
+                        <li class="upload-instruction-item">Duplikate werden automatisch herausgefiltert</li>
+                        <li class="upload-instruction-item">Sie erhalten eine kombinierte Liste mit allen Maklern</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const loadingText = document.getElementById('loadingText');
+    const fileInput = document.getElementById('file');
+
+    // File input styling
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file size (16MB)
+            if (file.size > 16 * 1024 * 1024) {
+                Utils.showToast('Datei zu groß! Maximum: 16MB', 'error');
+                e.target.value = '';
+                return;
+            }
+
+            // Validate file type
+            const validTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+            if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
+                Utils.showToast('Ungültiger Dateityp! Nur .xlsx und .xls erlaubt.', 'error');
+                e.target.value = '';
+                return;
+            }
+
+            Utils.showToast(`Datei "${file.name}" ausgewählt`, 'success');
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        const file = fileInput.files[0];
+        const location = document.getElementById('location').value.trim();
+
+        if (!file) {
+            e.preventDefault();
+            Utils.showToast('Bitte wählen Sie eine Excel-Datei aus.', 'error');
+            return;
+        }
+
+        if (!location) {
+            e.preventDefault();
+            Utils.showToast('Bitte geben Sie einen Suchbereich ein.', 'error');
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.classList.add('d-none');
+        loadingText.classList.remove('d-none');
+
+        Utils.showToast('Upload gestartet... Dies kann einige Minuten dauern.', 'info');
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'u') {
+            e.preventDefault();
+            fileInput.click();
+        }
+    });
+});
+</script>
+{% endblock %}

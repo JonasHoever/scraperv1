@@ -1,36 +1,67 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Page Loader -->
+<div class="page-loader">
+    <div class="modern-loader"></div>
+    <div class="loader-text">Versicherungsmakler Finder wird geladen...</div>
+</div>
+
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow">
+    <div class="col-md-10 col-lg-8">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-shield-alt me-2"></i>Versicherungsmakler Finder
+            </h1>
+            <p class="lead">Finden Sie schnell und einfach qualifizierte Versicherungsmakler in Ihrer Nähe</p>
+        </div>
+
+        <!-- Hauptsuchformular -->
+        <div class="card shadow-strong mb-4 glass-effect">
             <div class="card-header bg-primary text-white text-center">
-                <h2><i class="fas fa-search me-2"></i>Versicherungsmakler Finder</h2>
-                <p class="mb-0">Finden Sie qualifizierte Makler in Ihrer Nähe</p>
+                <h3><i class="fas fa-search me-2"></i>Makler-Suche starten</h3>
+                <p class="mb-0">Nutzen Sie unsere intelligente Suche für beste Ergebnisse</p>
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('search_brokers') }}" id="searchForm">
-                    <div class="mb-3">
-                        <label for="location" class="form-label">
-                            <i class="fas fa-map-marker-alt me-1"></i>
-                            Postleitzahl oder Ort
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('search_brokers') }}" id="searchForm" class="needs-validation" novalidate>
+                    <!-- Standort-Eingabe mit Verbesserungen -->
+                    <div class="mb-4">
+                        <label for="location" class="form-label fw-bold">
+                            <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                            Standort
                         </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="location" 
-                               name="location" 
-                               placeholder="z.B. 10117 oder Berlin" 
-                               required
-                               value="{{ request.form.location if request.form.location }}">
-                        <div class="form-text">Geben Sie eine deutsche Postleitzahl oder einen Ortsnamen ein.</div>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="location" 
+                                   name="location" 
+                                   placeholder="z.B. 10117, Berlin, Hamburg..." 
+                                   required
+                                   autocomplete="address-level2"
+                                   value="{{ request.form.location if request.form.location }}">
+                            <button class="btn btn-outline-secondary" type="button" id="locationButton" title="Standort wird geladen...">
+                                <i class="fas fa-crosshairs"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Postleitzahl, Stadt oder Adresse eingeben. 
+                            <span class="text-primary">Tipp:</span> Nutzen Sie den Standort-Button für automatische Erkennung.
+                        </div>
+                        <div class="invalid-feedback">
+                            Bitte geben Sie einen gültigen Standort ein (Postleitzahl oder Ortsname).
+                        </div>
                     </div>
                     
+                    <!-- Erweiterte Radius-Steuerung -->
                     <div class="mb-4">
-                        <label for="radius" class="form-label">
-                            <i class="fas fa-circle-notch me-1"></i>
-                            Suchradius
+                        <label for="radius" class="form-label fw-bold">
+                            <i class="fas fa-circle-notch me-2 text-primary"></i>
+                            Suchradius: <span id="radiusLabel" class="text-primary">{{ request.form.radius if request.form.radius else '10' }} km</span>
                         </label>
-                        <div class="row">
+                        
+                        <div class="row align-items-center">
                             <div class="col-8">
                                 <input type="range" 
                                        class="form-range" 
@@ -38,66 +69,176 @@
                                        name="radius" 
                                        min="1" 
                                        max="100" 
+                                       step="1"
                                        value="{{ request.form.radius if request.form.radius else '10' }}"
-                                       oninput="updateRadiusLabel(this.value)">
+                                       oninput="updateRadiusDisplay(this.value)">
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>1 km</span>
+                                    <span>25 km</span>
+                                    <span>50 km</span>
+                                    <span>100 km</span>
+                                </div>
                             </div>
                             <div class="col-4">
-                                <input type="number" 
-                                       class="form-control form-control-sm" 
-                                       id="radiusInput"
-                                       name="radiusInput"
-                                       min="1" 
-                                       max="100" 
-                                       value="{{ request.form.radius if request.form.radius else '10' }}"
-                                       onchange="updateRadiusSlider(this.value)">
+                                <div class="input-group">
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="radiusInput"
+                                           min="1" 
+                                           max="100" 
+                                           value="{{ request.form.radius if request.form.radius else '10' }}"
+                                           onchange="updateRadiusSlider(this.value)">
+                                    <span class="input-group-text">km</span>
+                                </div>
                             </div>
                         </div>
+                        
                         <div class="form-text">
-                            Radius: <span id="radiusLabel">{{ request.form.radius if request.form.radius else '10' }}</span> km
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Empfohlen: 10-25 km für Städte, 25-50 km für ländliche Gebiete
                         </div>
                     </div>
                     
+                    <!-- Such-Optionen -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-filter me-2 text-primary"></i>
+                            Suchoptionen (optional)
+                        </label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="onlyWithEmail" name="onlyWithEmail">
+                                    <label class="form-check-label" for="onlyWithEmail">
+                                        <i class="fas fa-envelope me-1"></i>Nur mit E-Mail
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="onlyWithWebsite" name="onlyWithWebsite">
+                                    <label class="form-check-label" for="onlyWithWebsite">
+                                        <i class="fas fa-globe me-1"></i>Nur mit Website
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="onlyWithRating" name="onlyWithRating">
+                                    <label class="form-check-label" for="onlyWithRating">
+                                        <i class="fas fa-star me-1"></i>Nur bewertete Makler
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="saveSearch" name="saveSearch" checked>
+                                    <label class="form-check-label" for="saveSearch">
+                                        <i class="fas fa-save me-1"></i>Suche speichern
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Suchbutton mit verbessertem Design -->
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="submit" class="btn btn-primary btn-lg hover-lift" id="searchButton">
                             <i class="fas fa-search me-2"></i>
-                            Makler suchen
+                            Versicherungsmakler finden
+                            <span class="badge bg-light text-primary ms-2">Kostenlos</span>
                         </button>
                     </div>
                 </form>
+                
+                <!-- Letzte Suchen (falls vorhanden) -->
+                <div id="recentSearches" class="mt-4" style="display: none;">
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">
+                            <i class="fas fa-history me-2 text-secondary"></i>Letzte Suchen
+                        </h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearRecentSearches()">
+                            <i class="fas fa-trash me-1"></i>Löschen
+                        </button>
+                    </div>
+                    <div id="recentSearchesList" class="d-flex flex-wrap gap-2"></div>
+                </div>
             </div>
         </div>
         
+        <!-- Info-Karten mit erweiterten Features -->
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 glass-effect hover-lift">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-map-marker-alt fa-3x text-primary"></i>
+                        </div>
+                        <h5>Präzise Lokalisierung</h5>
+                        <p class="card-text text-muted">
+                            Intelligente Standorterkennung mit Google Maps API für exakte Umkreissuche und Routenplanung.
+                        </p>
+                        <div class="mt-auto">
+                            <span class="badge bg-primary-subtle text-primary">Google Maps Integration</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 glass-effect hover-lift">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-spider fa-3x text-success"></i>
+                        </div>
+                        <h5>Detaillierte Daten</h5>
+                        <p class="card-text text-muted">
+                            Automatisches Web-Scraping für vollständige Kontaktinformationen, E-Mails und Ansprechpartner.
+                        </p>
+                        <div class="mt-auto">
+                            <span class="badge bg-success-subtle text-success">KI-gestützte Extraktion</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 glass-effect hover-lift">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-download fa-3x text-info"></i>
+                        </div>
+                        <h5>Flexible Exporte</h5>
+                        <p class="card-text text-muted">
+                            Ergebnisse als Excel oder JSON exportieren. API-Integration für automatische Weiterverarbeitung.
+                        </p>
+                        <div class="mt-auto">
+                            <span class="badge bg-info-subtle text-info">Excel & JSON & API</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Information für Entwickler -->
         <div class="mt-4 text-center">
-            <small class="text-muted">
-                <i class="fas fa-info-circle me-1"></i>
-                Die Suche verwendet Google Maps zur Lokalisierung von Versicherungsmaklern und scrapt deren Websites für detaillierte Kontaktinformationen.
-            </small>
-        </div>
-        
-        <!-- Beispiel-Karten -->
-        <div class="row mt-4">
-            <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-map-marker-alt fa-2x text-primary mb-2"></i>
-                        <h6>Präzise Lokalisierung</h6>
-                        <p class="card-text small text-muted">
-                            Nutzt Google Maps für genaue Standortermittlung und Umkreissuche
-                        </p>
-                    </div>
+            <details class="text-start">
+                <summary class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-code me-1"></i>API für Entwickler
+                </summary>
+                <div class="mt-3 p-3 bg-light rounded">
+                    <h6>Programmatischer Zugriff</h6>
+                    <p class="small">
+                        Diese Anwendung bietet auch eine REST-API für die Integration in Ihre Systeme:
+                    </p>
+                    <ul class="small text-muted">
+                        <li><code>GET /api/brokers</code> - Makler-Daten abrufen</li>
+                        <li><code>POST /api/forward</code> - Daten an externe API weiterleiten</li>
+                        <li><code>GET /export/json</code> - JSON-Export</li>
+                        <li><code>GET /export/excel</code> - Excel-Export</li>
+                    </ul>
+                    <a href="{{ url_for('api_settings') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-cog me-1"></i>API konfigurieren
+                    </a>
                 </div>
-            </div>
-            <div class="col-md-6 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-spider fa-2x text-primary mb-2"></i>
-                        <h6>Detaillierte Informationen</h6>
-                        <p class="card-text small text-muted">
-                            Web-Scraping für zusätzliche Kontaktdetails wie E-Mail und Ansprechpartner
-                        </p>
-                    </div>
-                </div>
-            </div>
+            </details>
         </div>
     </div>
 </div>
@@ -105,37 +246,624 @@
 
 {% block scripts %}
 <script>
-function updateRadiusLabel(value) {
-    document.getElementById('radiusLabel').textContent = value;
-    document.getElementById('radiusInput').value = value;
+// Enhanced Index Page JavaScript - Version 2.2 (Koordinierte Initialisierung)
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Index Page: DOMContentLoaded triggered');
+    
+    // Verhindere mehrfache Seiteninitialisierung
+    if (window.indexPageInitialized) {
+        console.log('ℹ️ Index page bereits initialisiert, überspringe...');
+        return;
+    }
+    window.indexPageInitialized = true;
+    
+    // Warte auf globale App-Initialisierung mit Timeout
+    let waitAttempts = 0;
+    const maxWaitAttempts = 100; // 5 Sekunden bei 50ms Intervall
+    
+    const waitForApp = () => {
+        waitAttempts++;
+        
+        if (window.appInitialized) {
+            console.log('⏳ Index Page: App initialisiert, starte seitenspezifische Initialisierung...');
+            
+            // Delay initialization to ensure all DOM elements are ready
+            setTimeout(() => {
+                console.log('⏳ Index Page: Starting delayed initialization...');
+                loadRecentSearches();
+                
+                // Debug geolocation setup
+                console.log('🗺️ Index Page: Setting up geolocation...');
+                setupGeolocation();
+                
+                setupFormEnhancements();
+                setupKeyboardShortcuts();
+                
+                console.log('✅ Index Page: All initialization complete');
+            }, 100);
+        } else if (waitAttempts >= maxWaitAttempts) {
+            console.warn('⚠️ Index Page: Timeout waiting for app initialization, starting anyway...');
+            
+            // Fallback initialization
+            setTimeout(() => {
+                console.log('🔄 Index Page: Fallback initialization...');
+                loadRecentSearches();
+                setupGeolocation();
+                setupFormEnhancements();
+                setupKeyboardShortcuts();
+                console.log('✅ Index Page: Fallback initialization complete');
+            }, 100);
+        } else {
+            console.log(`⏳ Index Page: Warte auf globale App-Initialisierung... (${waitAttempts}/${maxWaitAttempts})`);
+            setTimeout(waitForApp, 50);
+        }
+    };
+    
+    waitForApp();
+});
+
+// Load and display recent searches with Utils availability check
+function loadRecentSearches() {
+    // Check if Utils is available, if not, retry after a short delay
+    if (typeof Utils === 'undefined') {
+        console.log('⏳ Utils not available yet, retrying in 50ms...');
+        setTimeout(() => loadRecentSearches(), 50);
+        return;
+    }
+    
+    console.log('📋 Loading recent searches...');
+    const recentSearches = Utils.storage.get('recentSearches') || [];
+    
+    if (recentSearches.length > 0) {
+        const container = document.getElementById('recentSearches');
+        const list = document.getElementById('recentSearchesList');
+        
+        if (container && list) {
+            container.style.display = 'block';
+            list.innerHTML = '';
+            
+            recentSearches.slice(0, 5).forEach(search => {
+                const badge = document.createElement('button');
+                badge.className = 'btn btn-outline-primary btn-sm hover-lift';
+                badge.innerHTML = `<i class="fas fa-map-marker-alt me-1"></i>${search.location} (${search.radius}km)`;
+                badge.onclick = () => fillSearchForm(search);
+                list.appendChild(badge);
+            });
+            
+            console.log('✅ Recent searches loaded:', recentSearches.length);
+        } else {
+            console.warn('⚠️ Recent searches container elements not found');
+        }
+    } else {
+        console.log('ℹ️ No recent searches found');
+    }
 }
 
-function updateRadiusSlider(value) {
-    document.getElementById('radius').value = value;
-    document.getElementById('radiusLabel').textContent = value;
+function fillSearchForm(search) {
+    document.getElementById('location').value = search.location;
+    document.getElementById('radius').value = search.radius;
+    document.getElementById('radiusInput').value = search.radius;
+    updateRadiusDisplay(search.radius);
+    
+    Utils.showToast(`Suche geladen: ${search.location}`, 'success');
+    document.getElementById('location').focus();
 }
 
-// Form-Validierung
-document.getElementById('searchForm').addEventListener('submit', function(e) {
+function clearRecentSearches() {
+    Utils.storage.remove('recentSearches');
+    document.getElementById('recentSearches').style.display = 'none';
+    Utils.showToast('Suchverlauf gelöscht', 'info');
+}
+
+// Geolocation setup
+// Setup geolocation functionality with enhanced debugging
+function setupGeolocation() {
+    console.log('🗺️ setupGeolocation: Function called');
+    
+    const locationButton = document.getElementById('locationButton');
+    console.log('🔍 setupGeolocation: Button element:', locationButton);
+    
+    if (!locationButton) {
+        console.error('❌ setupGeolocation: Location button not found in DOM');
+        return;
+    }
+    
+    console.log('📱 setupGeolocation: Checking geolocation API support...');
+    if (!navigator.geolocation) {
+        console.warn('⚠️ setupGeolocation: Geolocation not supported by browser');
+        locationButton.disabled = true;
+        locationButton.innerHTML = '<i class="fas fa-times"></i>';
+        locationButton.title = 'Geolocation wird von diesem Browser nicht unterstützt';
+        return;
+    }
+    
+    console.log('✅ setupGeolocation: Geolocation API is supported');
+    locationButton.title = 'Aktuellen Standort verwenden - Klicken Sie hier und erlauben Sie den Zugriff';
+    locationButton.disabled = false;
+    
+    // Check if event listener already exists
+    const hasListener = locationButton.getAttribute('data-listener');
+    console.log('🎯 setupGeolocation: Existing listener:', hasListener);
+    
+    if (!hasListener) {
+        console.log('➕ setupGeolocation: Adding click event listener...');
+        
+        locationButton.addEventListener('click', function(e) {
+            console.log('🖱️ LocationButton: Click event triggered!');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('📍 LocationButton: Calling getCurrentLocation...');
+            getCurrentLocation();
+        });
+        
+        locationButton.setAttribute('data-listener', 'true');
+        console.log('✅ setupGeolocation: Event listener successfully attached');
+    } else {
+        console.log('ℹ️ setupGeolocation: Event listener already exists');
+    }
+    
+    // Additional visual feedback
+    locationButton.addEventListener('mouseenter', function() {
+        console.log('🖱️ LocationButton: Mouse enter');
+    });
+    
+    locationButton.addEventListener('mouseleave', function() {
+        console.log('🖱️ LocationButton: Mouse leave');
+    });
+    
+    console.log('🎉 setupGeolocation: Setup complete');
+}
+
+async function getCurrentLocation() {
+    const button = document.getElementById('locationButton');
+    const originalContent = button.innerHTML;
+    
+    // Check if geolocation is available
+    if (!navigator.geolocation) {
+        showLocationToast('Geolocation wird von diesem Browser nicht unterstützt', 'error');
+        return;
+    }
+
+    // Check if we're on a secure context (HTTPS or localhost)
+    const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.includes('localhost');
+    const isHttps = location.protocol === 'https:';
+    
+    // Modern browsers allow geolocation on localhost even over HTTP
+    if (!isSecureContext && !isLocalhost && !isHttps) {
+        showLocationToast('Geolocation erfordert HTTPS oder localhost. Aktuelle URL: ' + location.origin, 'warning');
+        // Don't return - try anyway on localhost
+        if (!isLocalhost) {
+            return;
+        }
+    }
+    
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    try {
+        // First check permissions API if available
+        if ('permissions' in navigator) {
+            try {
+                const permissionStatus = await navigator.permissions.query({name: 'geolocation'});
+                console.log('Geolocation permission status:', permissionStatus.state);
+                
+                if (permissionStatus.state === 'denied') {
+                    showLocationToast('Standortzugriff wurde verweigert. Bitte aktivieren Sie die Berechtigung in den Browser-Einstellungen und laden Sie die Seite neu.', 'error');
+                    resetLocationButton();
+                    return;
+                }
+            } catch (permError) {
+                console.log('Permissions API check failed:', permError);
+                // Continue anyway, permissions API might not be fully supported
+            }
+        }
+        
+        // Show user-friendly prompt first
+        console.log('Starting geolocation request...');
+        showLocationToast('Bitte erlauben Sie den Standortzugriff im Browser-Dialog', 'info');
+        
+        // Debug: Log browser and security context info
+        console.log('Geolocation request starting...');
+        console.log('Browser context:', {
+            protocol: location.protocol,
+            hostname: location.hostname,
+            isSecureContext: isSecureContext,
+            geolocationSupported: !!navigator.geolocation,
+            userAgent: navigator.userAgent.substring(0, 50),
+            isLocalhost: isLocalhost
+        });
+        
+        // Show info about geolocation availability
+        if (isLocalhost && location.protocol === 'http:') {
+            console.log('ℹ️ HTTP auf localhost - Geolocation sollte verfügbar sein');
+        } else if (isHttps) {
+            console.log('✅ HTTPS - Geolocation voll verfügbar');
+        }
+        
+        // Add timeout wrapper for better error handling
+        const timeoutId = setTimeout(() => {
+            showLocationToast('Standort-Abfrage dauert zu lange. Versuchen Sie es erneut.', 'warning');
+            resetLocationButton();
+        }, 15000);
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                clearTimeout(timeoutId);
+                const { latitude, longitude } = position.coords;
+                
+                // Reverse Geocoding (hier würden Sie normalerweise eine API verwenden)
+                // Für Demo-Zwecke verwenden wir Koordinaten
+                const locationInput = document.getElementById('location');
+                locationInput.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                
+                showLocationToast('Standort erfolgreich ermittelt', 'success');
+                
+                button.innerHTML = '<i class="fas fa-check text-success"></i>';
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                    button.disabled = false;
+                }, 2000);
+            },
+            (error) => {
+                clearTimeout(timeoutId);
+                let message = 'Standort konnte nicht ermittelt werden';
+                let toastType = 'error';
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Standortzugriff wurde verweigert!';
+                        toastType = 'warning';
+                        // Show detailed help after a short delay
+                        setTimeout(() => {
+                            if (confirm('Möchten Sie eine Anleitung zur Aktivierung des Standortzugriffs sehen?')) {
+                                showGeolocationHelp();
+                            }
+                        }, 2000);
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Standort nicht verfügbar. Prüfen Sie Ihre GPS/WLAN-Verbindung und versuchen Sie es erneut.';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Standort-Abfrage zu langsam. Bitte versuchen Sie es erneut.';
+                        break;
+                    default:
+                        message = 'Unbekannter Fehler bei der Standort-Ermittlung. Code: ' + error.code;
+                        break;
+                }
+                
+                console.error('Geolocation error:', error);
+                showLocationToast(message, toastType);
+                
+                button.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i>';
+                setTimeout(() => {
+                    resetLocationButton();
+                }, 3000);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 12000,
+                maximumAge: 300000 // 5 minutes cache
+            }
+        );
+        
+    } catch (error) {
+        console.error('Geolocation setup error:', error);
+        showLocationToast('Fehler beim Initialisieren der Standort-Funktion', 'error');
+        resetLocationButton();
+    }
+    
+    function resetLocationButton() {
+        button.innerHTML = originalContent;
+        button.disabled = false;
+    }
+}
+
+// Safe location toast function
+function showLocationToast(message, type = 'info') {
+    try {
+        // Try to use Utils if available
+        if (typeof Utils !== 'undefined' && Utils.showToast) {
+            Utils.showToast(message, type);
+            return;
+        }
+    } catch (e) {
+        console.log('Utils not available for location toast');
+    }
+    
+    // Fallback: use simple console log or alert
+    console.log(`Location ${type}: ${message}`);
+    
+    // Create a simple notification for important messages
+    if (type === 'error' || type === 'warning') {
+        setTimeout(() => alert(message), 100);
+    }
+}
+
+function showGeolocationHelp() {
+    const currentUrl = `${location.protocol}//${location.hostname}:${location.port || (location.protocol === 'https:' ? '443' : '80')}`;
+    
+    const helpMessage = `Standortzugriff aktivieren:
+
+AKTUELLE VERBINDUNG: ${currentUrl}
+STATUS: ${location.protocol === 'https:' ? '✅ HTTPS' : location.hostname === '127.0.0.1' || location.hostname === 'localhost' ? '⚠️ HTTP localhost (sollte funktionieren)' : '❌ HTTP (Geolocation blockiert)'}
+
+Chrome/Edge:
+1. Klicken Sie auf das Schloss/Info-Symbol links in der Adressleiste
+2. Wählen Sie "Standort" → "Zulassen"
+3. Laden Sie die Seite neu (F5)
+
+Firefox:
+1. Klicken Sie auf das Schild-Symbol in der Adressleiste
+2. Aktivieren Sie "Standort teilen"
+3. Laden Sie die Seite neu
+
+Safari:
+1. Safari → Einstellungen → Websites → Standort
+2. Wählen Sie diese Website und "Zulassen"
+
+FEHLERBEHEBUNG:
+• Browser neustarten
+• Inkognito-Modus testen
+• GPS/WLAN aktiviert?
+• Für HTTPS: python app_https_robust.py verwenden`;
+
+    alert(helpMessage);
+}
+
+// Global function to reset location button
+function resetLocationButtonGlobal() {
+    const button = document.getElementById('locationButton');
+    if (button) {
+        button.innerHTML = '<i class="fas fa-crosshairs"></i>';
+        button.disabled = false;
+    }
+}
+
+// Enhanced form functionality
+function setupFormEnhancements() {
+    const form = document.getElementById('searchForm');
+    const locationInput = document.getElementById('location');
+    
+    // Auto-complete suggestions (mock data)
+    setupLocationAutocomplete(locationInput);
+    
+    // Form submission enhancement
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (validateForm()) {
+            saveSearchToHistory();
+            showSearchProgress();
+            
+            // Submit with delay for better UX
+            setTimeout(() => {
+                this.submit();
+            }, 500);
+        }
+    });
+}
+
+function setupLocationAutocomplete(input) {
+    const suggestions = [
+        'Berlin', 'Hamburg', 'München', 'Köln', 'Frankfurt am Main',
+        'Stuttgart', 'Düsseldorf', 'Leipzig', 'Dortmund', 'Essen',
+        '10117', '20095', '80331', '50667', '60311'
+    ];
+    
+    let suggestionsList;
+    
+    input.addEventListener('input', Utils.debounce(function() {
+        const value = this.value.toLowerCase().trim();
+        
+        if (value.length < 2) {
+            hideSuggestions();
+            return;
+        }
+        
+        const matches = suggestions.filter(s => 
+            s.toLowerCase().includes(value)
+        ).slice(0, 5);
+        
+        if (matches.length > 0) {
+            showSuggestions(matches);
+        } else {
+            hideSuggestions();
+        }
+    }, 300));
+    
+    input.addEventListener('blur', () => {
+        setTimeout(hideSuggestions, 150);
+    });
+    
+    function showSuggestions(matches) {
+        hideSuggestions();
+        
+        suggestionsList = document.createElement('div');
+        suggestionsList.className = 'list-group position-absolute w-100';
+        suggestionsList.style.zIndex = '1050';
+        suggestionsList.style.top = '100%';
+        suggestionsList.style.maxHeight = '200px';
+        suggestionsList.style.overflowY = 'auto';
+        
+        matches.forEach(match => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `<i class="fas fa-map-marker-alt me-2"></i>${match}`;
+            item.onclick = () => {
+                input.value = match;
+                hideSuggestions();
+                input.focus();
+            };
+            suggestionsList.appendChild(item);
+        });
+        
+        input.parentElement.style.position = 'relative';
+        input.parentElement.appendChild(suggestionsList);
+    }
+    
+    function hideSuggestions() {
+        if (suggestionsList) {
+            suggestionsList.remove();
+            suggestionsList = null;
+        }
+    }
+}
+
+function validateForm() {
     const location = document.getElementById('location').value.trim();
     const radius = parseInt(document.getElementById('radius').value);
     
+    // Enhanced location validation
     if (!location) {
-        e.preventDefault();
-        alert('Bitte geben Sie einen Standort ein.');
-        return;
+        Utils.showToast('Bitte geben Sie einen Standort ein', 'error');
+        document.getElementById('location').focus();
+        return false;
     }
     
+    if (location.length < 2) {
+        Utils.showToast('Standort muss mindestens 2 Zeichen haben', 'error');
+        document.getElementById('location').focus();
+        return false;
+    }
+    
+    // Radius validation
     if (radius < 1 || radius > 100) {
-        e.preventDefault();
-        alert('Der Radius muss zwischen 1 und 100 km liegen.');
-        return;
+        Utils.showToast('Radius muss zwischen 1 und 100 km liegen', 'error');
+        document.getElementById('radius').focus();
+        return false;
     }
     
-    // Loading-Status anzeigen
-    const button = this.querySelector('button[type="submit"]');
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Suche läuft...';
-    button.disabled = true;
+    return true;
+}
+
+function saveSearchToHistory() {
+    const location = document.getElementById('location').value.trim();
+    const radius = document.getElementById('radius').value;
+    const saveSearch = document.getElementById('saveSearch').checked;
+    
+    if (!saveSearch) return;
+    
+    const recentSearches = Utils.storage.get('recentSearches') || [];
+    const newSearch = {
+        location,
+        radius,
+        timestamp: new Date().toISOString(),
+        id: Utils.generateId()
+    };
+    
+    // Remove duplicate
+    const filtered = recentSearches.filter(s => 
+        s.location !== location || s.radius !== radius
+    );
+    
+    // Add new search at beginning
+    filtered.unshift(newSearch);
+    
+    // Keep only last 10 searches
+    const updated = filtered.slice(0, 10);
+    
+    Utils.storage.set('recentSearches', updated);
+}
+
+function showSearchProgress() {
+    const button = document.getElementById('searchButton');
+    Utils.setButtonLoading(button, true);
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Suche wird gestartet...';
+    
+    // Enhanced progress indication
+    const progressSteps = [
+        'Standort wird validiert...',
+        'Google Maps wird kontaktiert...',
+        'Makler werden gesucht...',
+        'Weiterleitung zu Ergebnissen...'
+    ];
+    
+    let currentStep = 0;
+    const stepInterval = setInterval(() => {
+        if (currentStep < progressSteps.length - 1) {
+            currentStep++;
+            button.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${progressSteps[currentStep]}`;
+        } else {
+            clearInterval(stepInterval);
+        }
+    }, 800);
+}
+
+// Radius control functions (enhanced)
+function updateRadiusDisplay(value) {
+    document.getElementById('radiusLabel').innerHTML = `<span class="fw-bold">${value} km</span>`;
+    document.getElementById('radiusInput').value = value;
+    
+    // Color coding for radius
+    const label = document.getElementById('radiusLabel');
+    const numValue = parseInt(value);
+    
+    if (numValue <= 15) {
+        label.className = 'text-success fw-bold';
+    } else if (numValue <= 35) {
+        label.className = 'text-warning fw-bold';
+    } else {
+        label.className = 'text-danger fw-bold';
+    }
+}
+
+function updateRadiusSlider(value) {
+    const numValue = Math.max(1, Math.min(100, parseInt(value) || 10));
+    document.getElementById('radius').value = numValue;
+    document.getElementById('radiusInput').value = numValue;
+    updateRadiusDisplay(numValue);
+}
+
+// Keyboard shortcuts
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Alt+S: Focus search
+        if (e.altKey && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('location').focus();
+            Utils.showToast('Suchfeld fokussiert (Alt+S)', 'info');
+        }
+        
+        // Alt+G: Get current location
+        if (e.altKey && e.key === 'g') {
+            e.preventDefault();
+            getCurrentLocation();
+        }
+        
+        // Enter in radius input: Submit form
+        if (e.key === 'Enter' && e.target.id === 'radiusInput') {
+            e.preventDefault();
+            document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+        }
+    });
+}
+
+// Legacy functions for backward compatibility
+function updateRadiusLabel(value) {
+    updateRadiusDisplay(value);
+}
+
+// Initialize on load
+window.addEventListener('load', function() {
+    // Performance tracking (nur Konsole-Log, Toast wird von app.js gehandelt)
+    if ('performance' in window) {
+        const perfData = performance.getEntriesByType('navigation')[0];
+        if (perfData) {
+            const loadTime = Math.round(perfData.loadEventEnd - perfData.fetchStart);
+            console.log(`🚀 Index page loaded in ${loadTime}ms`);
+            // Toast entfernt - wird bereits von app.js global gehandelt
+        }
+    }
+    
+    // Hide page loader
+    const pageLoader = document.querySelector('.page-loader');
+    if (pageLoader) {
+        setTimeout(() => {
+            pageLoader.classList.add('hide');
+        }, 1500);
+    }
 });
 </script>
 {% endblock %}
