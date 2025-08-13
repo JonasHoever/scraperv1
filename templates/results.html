@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Suchergebnisse - Versicherungsmakler Finder{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Suchinfo Header -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            {{ brokers|length }} Versicherungsmakler gefunden
+                        </h4>
+                        <small>Standort: {{ location }} • Radius: {{ radius }} km</small>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('index') }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-search me-1"></i>Neue Suche
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Forward Controls -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h6 class="mb-0">
+                            <i class="fas fa-share-alt me-2"></i>API-Integration
+                        </h6>
+                        <small class="text-muted">Daten an externe API weiterleiten</small>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="forwardAllBrokers()">
+                                <i class="fas fa-share me-1"></i>Alle senden
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="exportAsJson()">
+                                <i class="fas fa-download me-1"></i>JSON Export
+                            </button>
+                            <a href="{{ url_for('api_test_connection') }}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-cog me-1"></i>API Config
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div id="apiStatus" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for broker in brokers %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 broker-card" data-broker-id="{{ loop.index0 }}">
+            <div class="card-header d-flex justify-content-between align-items-start">
+                <h5 class="card-title mb-1">{{ broker.name }}</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="forwardBroker({{ loop.index0 }})">
+                                <i class="fas fa-share me-2"></i>An API senden
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="copyBrokerJson({{ loop.index0 }})">
+                                <i class="fas fa-copy me-2"></i>JSON kopieren
+                            </a>
+                        </li>
+                        {% if broker.website != 'Nicht verfügbar' %}
+                        <li>
+                            <a class="dropdown-item" href="{{ broker.website }}" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>Website öffnen
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Bewertung -->
+                {% if broker.rating > 0 %}
+                <div class="mb-2">
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-star me-1"></i>{{ broker.rating }}
+                        ({{ broker.user_ratings_total }} Bewertungen)
+                    </span>
+                </div>
+                {% endif %}
+                
+                <!-- Kontaktinformationen -->
+                <div class="contact-info">
+                    <div class="mb-2">
+                        <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                        <small>{{ broker.address }}</small>
+                    </div>
+                    
+                    {% if broker.contact_person != 'Nicht verfügbar' %}
+                    <div class="mb-2">
+                        <i class="fas fa-user text-muted me-2"></i>
+                        <small><strong>{{ broker.contact_person }}</strong></small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if broker.phone != 'Nicht verfügbar' %}
+                    <div class="mb-2">
+                        <i class="fas fa-phone text-muted me-2"></i>
+                        <a href="tel:{{ broker.phone }}" class="text-decoration-none">
+                            <small>{{ broker.phone }}</small>
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if broker.email != 'Nicht verfügbar' %}
+                    <div class="mb-2">
+                        <i class="fas fa-envelope text-muted me-2"></i>
+                        <a href="mailto:{{ broker.email }}" class="text-decoration-none">
+                            <small>{{ broker.email }}</small>
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if broker.website != 'Nicht verfügbar' %}
+                    <div class="mb-2">
+                        <i class="fas fa-globe text-muted me-2"></i>
+                        <a href="{{ broker.website }}" target="_blank" class="text-decoration-none">
+                            <small>Website besuchen</small>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card-footer bg-light">
+                <div class="btn-group w-100" role="group">
+                    {% if broker.phone != 'Nicht verfügbar' %}
+                    <a href="tel:{{ broker.phone }}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-phone me-1"></i>Anrufen
+                    </a>
+                    {% endif %}
+                    
+                    {% if broker.email != 'Nicht verfügbar' %}
+                    <a href="mailto:{{ broker.email }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-envelope me-1"></i>E-Mail
+                    </a>
+                    {% endif %}
+                    
+                    <button class="btn btn-outline-secondary btn-sm" onclick="forwardBroker({{ loop.index0 }})">
+                        <i class="fas fa-share me-1"></i>API
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- JSON Data für JavaScript -->
+<script id="brokersData" type="application/json">
+{{ brokers | tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Makler-Daten aus JSON laden
+const brokersData = JSON.parse(document.getElementById('brokersData').textContent);
+
+function forwardBroker(index) {
+    const broker = brokersData[index];
+    
+    if (!broker) {
+        alert('Makler-Daten nicht gefunden.');
+        return;
+    }
+    
+    // Loading-Status anzeigen
+    const card = document.querySelector(`[data-broker-id="${index}"]`);
+    const originalContent = card.innerHTML;
+    
+    showLoadingSpinner(card);
+    
+    fetch('/api/forward', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(broker)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showSuccessMessage(`Makler "${broker.name}" erfolgreich an API gesendet.`);
+            highlightCard(card, 'success');
+        } else {
+            showErrorMessage(`Fehler beim Senden: ${data.message || 'Unbekannter Fehler'}`);
+            highlightCard(card, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showErrorMessage('Fehler beim Senden der Daten.');
+        highlightCard(card, 'danger');
+    })
+    .finally(() => {
+        card.innerHTML = originalContent;
+        // Event-Listeners wieder hinzufügen
+        addDropdownListeners(card);
+    });
+}
+
+function forwardAllBrokers() {
+    if (!confirm(`Alle ${brokersData.length} Makler an die externe API senden?`)) {
+        return;
+    }
+    
+    const promises = brokersData.map((broker, index) => {
+        return fetch('/api/forward', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(broker)
+        })
+        .then(response => response.json())
+        .then(data => ({ index, success: data.status === 'success', data }))
+        .catch(error => ({ index, success: false, error: error.message }));
+    });
+    
+    Promise.all(promises).then(results => {
+        const successful = results.filter(r => r.success).length;
+        const failed = results.length - successful;
+        
+        if (failed === 0) {
+            showSuccessMessage(`Alle ${successful} Makler erfolgreich gesendet.`);
+        } else {
+            showErrorMessage(`${successful} erfolgreich, ${failed} fehlgeschlagen.`);
+        }
+        
+        // Cards entsprechend markieren
+        results.forEach(result => {
+            const card = document.querySelector(`[data-broker-id="${result.index}"]`);
+            highlightCard(card, result.success ? 'success' : 'danger');
+        });
+    });
+}
+
+function copyBrokerJson(index) {
+    const broker = brokersData[index];
+    const jsonString = JSON.stringify(broker, null, 2);
+    
+    navigator.clipboard.writeText(jsonString).then(() => {
+        showSuccessMessage('JSON-Daten in Zwischenablage kopiert.');
+    }).catch(err => {
+        console.error('Fehler beim Kopieren:', err);
+        // Fallback für ältere Browser
+        const textArea = document.createElement('textarea');
+        textArea.value = jsonString;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showSuccessMessage('JSON-Daten in Zwischenablage kopiert.');
+    });
+}
+
+function exportAsJson() {
+    const jsonString = JSON.stringify(brokersData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `versicherungsmakler_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showSuccessMessage('JSON-Export gestartet.');
+}
+
+function showLoadingSpinner(element) {
+    element.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-2">Sende Daten...</div>
+        </div>
+    `;
+}
+
+function highlightCard(card, type) {
+    card.classList.remove('border-success', 'border-danger');
+    card.classList.add(`border-${type}`);
+    setTimeout(() => {
+        card.classList.remove(`border-${type}`);
+    }, 3000);
+}
+
+function showSuccessMessage(message) {
+    showAlert(message, 'success');
+}
+
+function showErrorMessage(message) {
+    showAlert(message, 'danger');
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+function addDropdownListeners(card) {
+    // Bootstrap Dropdown Funktionalität wieder aktivieren
+    const dropdownToggles = card.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(toggle => {
+        new bootstrap.Dropdown(toggle);
+    });
+}
+
+// Initial Dropdown-Listeners hinzufügen
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.broker-card').forEach(addDropdownListeners);
+});
+</script>
+{% endblock %}

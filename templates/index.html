@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h2><i class="fas fa-search me-2"></i>Versicherungsmakler Finder</h2>
+                <p class="mb-0">Finden Sie qualifizierte Makler in Ihrer Nähe</p>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('search_brokers') }}" id="searchForm">
+                    <div class="mb-3">
+                        <label for="location" class="form-label">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            Postleitzahl oder Ort
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="location" 
+                               name="location" 
+                               placeholder="z.B. 10117 oder Berlin" 
+                               required
+                               value="{{ request.form.location if request.form.location }}">
+                        <div class="form-text">Geben Sie eine deutsche Postleitzahl oder einen Ortsnamen ein.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="radius" class="form-label">
+                            <i class="fas fa-circle-notch me-1"></i>
+                            Suchradius
+                        </label>
+                        <div class="row">
+                            <div class="col-8">
+                                <input type="range" 
+                                       class="form-range" 
+                                       id="radius" 
+                                       name="radius" 
+                                       min="1" 
+                                       max="100" 
+                                       value="{{ request.form.radius if request.form.radius else '10' }}"
+                                       oninput="updateRadiusLabel(this.value)">
+                            </div>
+                            <div class="col-4">
+                                <input type="number" 
+                                       class="form-control form-control-sm" 
+                                       id="radiusInput"
+                                       name="radiusInput"
+                                       min="1" 
+                                       max="100" 
+                                       value="{{ request.form.radius if request.form.radius else '10' }}"
+                                       onchange="updateRadiusSlider(this.value)">
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            Radius: <span id="radiusLabel">{{ request.form.radius if request.form.radius else '10' }}</span> km
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search me-2"></i>
+                            Makler suchen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Die Suche verwendet Google Maps zur Lokalisierung von Versicherungsmaklern und scrapt deren Websites für detaillierte Kontaktinformationen.
+            </small>
+        </div>
+        
+        <!-- Beispiel-Karten -->
+        <div class="row mt-4">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-map-marker-alt fa-2x text-primary mb-2"></i>
+                        <h6>Präzise Lokalisierung</h6>
+                        <p class="card-text small text-muted">
+                            Nutzt Google Maps für genaue Standortermittlung und Umkreissuche
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-spider fa-2x text-primary mb-2"></i>
+                        <h6>Detaillierte Informationen</h6>
+                        <p class="card-text small text-muted">
+                            Web-Scraping für zusätzliche Kontaktdetails wie E-Mail und Ansprechpartner
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateRadiusLabel(value) {
+    document.getElementById('radiusLabel').textContent = value;
+    document.getElementById('radiusInput').value = value;
+}
+
+function updateRadiusSlider(value) {
+    document.getElementById('radius').value = value;
+    document.getElementById('radiusLabel').textContent = value;
+}
+
+// Form-Validierung
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    const location = document.getElementById('location').value.trim();
+    const radius = parseInt(document.getElementById('radius').value);
+    
+    if (!location) {
+        e.preventDefault();
+        alert('Bitte geben Sie einen Standort ein.');
+        return;
+    }
+    
+    if (radius < 1 || radius > 100) {
+        e.preventDefault();
+        alert('Der Radius muss zwischen 1 und 100 km liegen.');
+        return;
+    }
+    
+    // Loading-Status anzeigen
+    const button = this.querySelector('button[type="submit"]');
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Suche läuft...';
+    button.disabled = true;
+});
+</script>
+{% endblock %}

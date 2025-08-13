@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Serverfehler - Versicherungsmakler Finder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card">
+            <div class="card-body py-5">
+                <i class="fas fa-server fa-5x text-danger mb-4"></i>
+                <h1 class="card-title">500 - Interner Serverfehler</h1>
+                <p class="card-text text-muted">
+                    Es ist ein unerwarteter Fehler aufgetreten. Bitte versuchen Sie es später erneut.
+                </p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Zur Startseite
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

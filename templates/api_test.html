@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}API Test - Versicherungsmakler Finder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="fas fa-cog me-2"></i>API Konfiguration & Test</h4>
+            </div>
+            <div class="card-body">
+                
+                <!-- Aktuelle Konfiguration -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-info-circle me-2"></i>Aktuelle Konfiguration</h5>
+                    <div id="configInfo" class="alert alert-secondary">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        Lade Konfiguration...
+                    </div>
+                </div>
+
+                <!-- API Test -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-flask me-2"></i>API Verbindungstest</h5>
+                    <p class="text-muted">
+                        Sendet Test-Daten an die konfigurierte externe API um die Verbindung zu testen.
+                    </p>
+                    <button id="testApiBtn" class="btn btn-primary">
+                        <i class="fas fa-play me-1"></i>API Test starten
+                    </button>
+                    <div id="testResult" class="mt-3"></div>
+                </div>
+
+                <!-- Format Vorschau -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-code me-2"></i>JSON Format Vorschau</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Format auswählen:</label>
+                        <select id="formatSelect" class="form-select">
+                            <option value="basic">Basic - Minimale Daten</option>
+                            <option value="enhanced" selected>Enhanced - Vollständig mit Scraping</option>
+                            <option value="custom">Custom - Benutzerdefiniert</option>
+                        </select>
+                    </div>
+                    <div id="formatPreview">
+                        <pre><code class="language-json" id="jsonPreview">Wähle ein Format...</code></pre>
+                    </div>
+                </div>
+
+                <!-- Dokumentation -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-book me-2"></i>Konfiguration</h5>
+                    <div class="alert alert-info">
+                        <h6>1. .env Datei bearbeiten:</h6>
+                        <code>
+                            EXTERNAL_API_URL=https://your-api.com/endpoint<br>
+                            API_SEND_FORMAT=enhanced<br>
+                            EXTERNAL_API_KEY=your-api-key (optional)
+                        </code>
+                        
+                        <h6 class="mt-3">2. Test-URLs (kostenlos):</h6>
+                        <ul class="mb-0">
+                            <li><a href="https://webhook.site/" target="_blank">Webhook.site</a> - Zum Testen</li>
+                            <li><a href="https://requestbin.com/" target="_blank">RequestBin</a> - HTTP Requests anzeigen</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Zurück Button -->
+                <div class="text-center">
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Zurück zur Suche
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Sample JSON Data für Vorschau
+const sampleData = {
+    name: "UFKB Berlin - Unabhängiger Versicherungsmakler Berlin",
+    contact_person: "Max Mustermann",
+    address: "Musterstraße 123, 10115 Berlin",
+    phone: "+49 30 12345678",
+    email: "info@example-broker.de",
+    website: "https://example-broker.de",
+    rating: 4.8,
+    user_ratings_total: 96,
+    place_id: "ChIJlQV3wNZQqEcRPRunsa1qbZE"
+};
+
+const formatExamples = {
+    basic: {
+        name: sampleData.name,
+        phone: sampleData.phone,
+        website: sampleData.website,
+        address: sampleData.address,
+        rating: sampleData.rating
+    },
+    enhanced: {
+        broker_info: {
+            name: sampleData.name,
+            contact_person: sampleData.contact_person,
+            address: sampleData.address,
+            phone: sampleData.phone,
+            email: sampleData.email,
+            website: sampleData.website,
+            rating: sampleData.rating,
+            total_reviews: sampleData.user_ratings_total,
+            google_place_id: sampleData.place_id
+        },
+        scraped_data: {
+            contact_person: sampleData.contact_person,
+            email: sampleData.email,
+            additional_phone: sampleData.phone,
+            scraped_successfully: true
+        },
+        metadata: {
+            source: "Versicherungsmakler-Finder",
+            scraped_at: new Date().toISOString(),
+            data_quality: "high",
+            format_version: "1.0"
+        }
+    },
+    custom: {
+        id: sampleData.place_id,
+        companyName: sampleData.name,
+        contactPerson: sampleData.contact_person,
+        businessAddress: sampleData.address,
+        phoneNumber: sampleData.phone,
+        emailAddress: sampleData.email,
+        websiteUrl: sampleData.website,
+        googleRating: sampleData.rating,
+        reviewCount: sampleData.user_ratings_total,
+        industry: "Versicherungsmakler",
+        location: {
+            address: sampleData.address,
+            source: "Google Maps"
+        },
+        lastUpdated: new Date().toISOString()
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfiguration();
+    updateFormatPreview();
+    
+    // Event Listeners
+    document.getElementById('formatSelect').addEventListener('change', updateFormatPreview);
+    document.getElementById('testApiBtn').addEventListener('click', testAPI);
+});
+
+function loadConfiguration() {
+    fetch('/api/config')
+        .then(response => response.json())
+        .then(config => {
+            const configDiv = document.getElementById('configInfo');
+            const status = config.external_api_configured ? 
+                '<span class="badge bg-success">Konfiguriert</span>' : 
+                '<span class="badge bg-warning">Nicht konfiguriert</span>';
+            
+            const authStatus = config.has_api_key || config.has_api_token ?
+                '<span class="badge bg-success">Mit Authentifizierung</span>' :
+                '<span class="badge bg-secondary">Ohne Authentifizierung</span>';
+            
+            configDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Status:</strong> ${status}<br>
+                        <strong>Format:</strong> <code>${config.api_format}</code><br>
+                        <strong>Authentifizierung:</strong> ${authStatus}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>API URL:</strong><br>
+                        <small class="text-muted">${config.external_api_url}</small>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            document.getElementById('configInfo').innerHTML = 
+                '<span class="text-danger">Fehler beim Laden der Konfiguration</span>';
+        });
+}
+
+function updateFormatPreview() {
+    const format = document.getElementById('formatSelect').value;
+    const preview = formatExamples[format];
+    document.getElementById('jsonPreview').textContent = JSON.stringify(preview, null, 2);
+}
+
+function testAPI() {
+    const button = document.getElementById('testApiBtn');
+    const resultDiv = document.getElementById('testResult');
+    
+    // Loading State
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Teste API...';
+    button.disabled = true;
+    
+    resultDiv.innerHTML = '<div class="alert alert-info">API-Test läuft...</div>';
+    
+    fetch('/api/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-check-circle me-2"></i>API Test erfolgreich!</h6>
+                    <p><strong>Format verwendet:</strong> <code>${data.format_used}</code></p>
+                    <details>
+                        <summary>Gesendete Daten anzeigen</summary>
+                        <pre class="mt-2"><code>${JSON.stringify(data.sent_payload, null, 2)}</code></pre>
+                    </details>
+                    <details class="mt-2">
+                        <summary>API Antwort anzeigen</summary>
+                        <pre class="mt-2"><code>${JSON.stringify(data.api_response, null, 2)}</code></pre>
+                    </details>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-times-circle me-2"></i>API Test fehlgeschlagen</h6>
+                    <p><strong>Fehler:</strong> ${data.message}</p>
+                    ${data.sent_payload ? `
+                        <details>
+                            <summary>Versuchte Daten</summary>
+                            <pre class="mt-2"><code>${JSON.stringify(data.sent_payload, null, 2)}</code></pre>
+                        </details>
+                    ` : ''}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-times-circle me-2"></i>Fehler beim API Test</h6>
+                <p>${error.message}</p>
+            </div>
+        `;
+    })
+    .finally(() => {
+        button.innerHTML = '<i class="fas fa-play me-1"></i>API Test starten';
+        button.disabled = false;
+    });
+}
+</script>
+{% endblock %}

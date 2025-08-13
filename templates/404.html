@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Seite nicht gefunden - Versicherungsmakler Finder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card">
+            <div class="card-body py-5">
+                <i class="fas fa-exclamation-triangle fa-5x text-warning mb-4"></i>
+                <h1 class="card-title">404 - Seite nicht gefunden</h1>
+                <p class="card-text text-muted">
+                    Die angeforderte Seite konnte nicht gefunden werden.
+                </p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Zur Startseite
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
