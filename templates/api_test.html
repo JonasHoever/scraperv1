@@ -156,7 +156,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadConfiguration() {
-    fetch('/api/config')
+    const base = (window.APP_BASE || '').replace(/\/$/, '');
+    fetch(`${base}/api/config`)
         .then(response => response.json())
         .then(config => {
             const configDiv = document.getElementById('configInfo');
@@ -204,7 +205,8 @@ function testAPI() {
     
     resultDiv.innerHTML = '<div class="alert alert-info">API-Test läuft...</div>';
     
-    fetch('/api/test', {
+    const base = (window.APP_BASE || '').replace(/\/$/, '');
+    fetch(`${base}/api/test`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

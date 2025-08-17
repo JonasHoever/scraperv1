@@ -9,7 +9,7 @@ import json
 from werkzeug.utils import secure_filename
 from utils.geocoding import get_coordinates, search_insurance_brokers
 from utils.scraper import scrape_broker_website
-from utils.api_client import forward_to_external_api
+from utils.api_client import forward_to_external_api, prepare_broker_payload
 
 # Umgebungsvariablen laden
 load_dotenv()
@@ -380,25 +380,39 @@ def api_settings():
             return render_template('api_settings.html', settings=request.form)
 
 
+@app.route('/api/config', methods=['GET'])
+def api_config():
+    """Liefert die aktuelle API-Konfiguration als JSON (read-only)."""
+    try:
+        config = {
+            'external_api_url': os.getenv('EXTERNAL_API_URL', ''),
+            'api_send_format': os.getenv('API_SEND_FORMAT', 'enhanced'),
+            'external_api_key_set': bool(os.getenv('EXTERNAL_API_KEY')),
+            'external_api_token_set': bool(os.getenv('EXTERNAL_API_TOKEN')),
+            'external_api_configured': bool(os.getenv('EXTERNAL_API_URL'))
+        }
+        return jsonify(config)
+    except Exception as e:
+        logger.error(f"Fehler beim Lesen der API-Konfiguration: {e}")
+        return jsonify({'error': 'Konfiguration nicht verfügbar'}), 500
+
 @app.route('/api/test-connection', methods=['POST'])
 def test_api_connection():
     """Test der aktuellen API-Verbindung"""
     try:
-        # Test-Daten erstellen
-        test_data = {
-            'test': True,
-            'timestamp': datetime.now().isoformat(),
-            'source': 'Versicherungsmakler Finder - Connection Test',
-            'data': {
-                'name': 'Test Versicherungsmakler GmbH',
-                'contact_person': 'Max Mustermann',
-                'address': 'Teststraße 123, 12345 Teststadt',
-                'phone': '+49 123 456789',
-                'email': 'test@beispiel-makler.de',
-                'website': 'https://beispiel-makler.de'
-            }
+        # Beispiel-Broker (Top-Level Felder, damit Payload gefüllt ist)
+        test_broker = {
+            'name': 'Test Versicherungsmakler GmbH',
+            'contact_person': 'Max Mustermann',
+            'address': 'Teststraße 123, 12345 Teststadt',
+            'phone': '+49 123 456789',
+            'email': 'test@beispiel-makler.de',
+            'website': 'https://beispiel-makler.de',
+            'rating': 4.7,
+            'user_ratings_total': 12,
+            'place_id': 'test_place_id_conn_1'
         }
-        
+
         # Test-Request senden
         api_url = os.getenv('EXTERNAL_API_URL')
         if not api_url:
@@ -406,14 +420,20 @@ def test_api_connection():
                 'status': 'error',
                 'message': 'Keine API-URL konfiguriert'
             }), 400
-        
-        response = forward_to_external_api(test_data)
-        
+
+        # Payload sicher aufbauen; falls Helper nicht verfügbar ist, Rohdaten senden
+        try:
+            sent_payload = prepare_broker_payload(test_broker)
+        except Exception:
+            sent_payload = test_broker
+        response = forward_to_external_api(test_broker)
+
         return jsonify({
             'status': 'success' if response and response.get('success') else 'error',
             'api_url': api_url,
+            'message': 'API-Test erfolgreich' if response and response.get('success') else 'API-Test fehlgeschlagen',
             'response': response,
-            'test_data': test_data
+            'sent_payload': sent_payload
         })
         
     except Exception as e:
@@ -422,19 +442,20 @@ def test_api_connection():
             'status': 'error',
             'message': f'Verbindungstest fehlgeschlagen: {str(e)}'
         }), 500
-    """API Endpoint um Makler-Daten an externe API weiterzuleiten"""
+
+
+@app.route('/api/forward', methods=['POST'])
+def api_forward():
+    """Empfängt einen Broker-Datensatz und leitet ihn an die konfigurierte externe API weiter."""
     try:
-        broker_data = request.get_json()
-        
+        broker_data = request.get_json(silent=True)
         if not broker_data:
             return jsonify({
                 'status': 'error',
                 'message': 'Keine Daten empfangen'
             }), 400
-        
-        # An externe API weiterleiten
+
         response = forward_to_external_api(broker_data)
-        
         if response and response.get('success'):
             return jsonify({
                 'status': 'success',
@@ -447,8 +468,8 @@ def test_api_connection():
                 'status': 'error',
                 'message': 'Fehler beim Weiterleiten der Daten',
                 'error_details': response
-            }), 500
-            
+            }), 502
+
     except Exception as e:
         logger.error(f"Fehler beim Weiterleiten der API-Daten: {str(e)}")
         return jsonify({

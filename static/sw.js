@@ -1,10 +1,15 @@
 // Service Worker für Versicherungsmakler Finder
 const CACHE_NAME = 'versicherungsmakler-finder-v2.0';
+
+// Bestimme Basis-Pfad aus der Registrierungs-Scope (z. B. "/scraper/")
+const SCOPE_URL = self.registration && self.registration.scope ? new URL(self.registration.scope) : new URL('/', self.location);
+const BASE = new URL('.', SCOPE_URL).pathname.replace(/\/$/, ''); // z.B. "/scraper"
+
 const urlsToCache = [
-    '/',
-    '/static/css/style.css',
-    '/static/js/app.js',
-    '/static/favicon.ico',
+    `${BASE}/`,
+    `${BASE}/static/css/style.css`,
+    `${BASE}/static/js/app.js`,
+    `${BASE}/static/favicon.ico`,
     // Bootstrap CDN files (falls verfügbar)
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
@@ -85,10 +90,10 @@ self.addEventListener('fetch', function(event) {
                     return response;
                 });
             })
-            .catch(function() {
+        .catch(function() {
                 // Netzwerk und Cache fehlgeschlagen - Offline-Fallback
                 if (event.request.destination === 'document') {
-                    return caches.match('/');
+            return caches.match(`${BASE}/`);
                 }
                 
                 // Für andere Ressourcen einen generischen Fehler zurückgeben
@@ -122,8 +127,8 @@ function doBackgroundSearch() {
 self.addEventListener('push', function(event) {
     const options = {
         body: event.data ? event.data.text() : 'Neue Versicherungsmakler gefunden!',
-        icon: '/static/favicon.ico',
-        badge: '/static/favicon.ico',
+        icon: `${BASE}/static/favicon.ico`,
+        badge: `${BASE}/static/favicon.ico`,
         tag: 'broker-notification',
         requireInteraction: false,
         actions: [
@@ -149,7 +154,7 @@ self.addEventListener('notificationclick', function(event) {
     
     if (event.action === 'view') {
         event.waitUntil(
-            clients.openWindow('/')
+            clients.openWindow(`${BASE}/`)
         );
     }
 });

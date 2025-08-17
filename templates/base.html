@@ -61,6 +61,10 @@
     {% block head %}{% endblock %}
 </head>
 <body>
+    <script>
+        // Base path when app is mounted under a subpath (e.g., /scraper)
+        window.APP_BASE = "{{ request.script_root|e }}" || '';
+    </script>
     <!-- Enhanced Navigation -->
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container">
@@ -96,8 +100,8 @@
                             <i class="fas fa-download me-1"></i>Export
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                            <li><a class="dropdown-item" href="/export/excel"><i class="fas fa-file-excel me-2"></i>Excel Export</a></li>
-                            <li><a class="dropdown-item" href="/export/json"><i class="fas fa-file-code me-2"></i>JSON Export</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_excel') }}"><i class="fas fa-file-excel me-2"></i>Excel Export</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_json') }}"><i class="fas fa-file-code me-2"></i>JSON Export</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" onclick="showSafeMessage('Führen Sie zuerst eine Suche durch')"><i class="fas fa-info-circle me-2"></i>Hinweis</a></li>
                         </ul>
@@ -510,7 +514,9 @@
     <script>
         if ('serviceWorker' in navigator && 'caches' in window) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/static/sw.js')
+                    // Register SW with a path that works under subpath mounting
+                    const swUrl = new URL("{{ url_for('static', filename='sw.js') }}", window.location.origin).pathname;
+                    navigator.serviceWorker.register(swUrl)
                     .then(function(registration) {
                         console.log('SW registered: ', registration);
                     })

@@ -33,7 +33,7 @@
                     </h4>
                 </div>
                 <div class="card-body p-4">
-                    <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <form action="{{ url_for('upload_excel') }}" method="post" enctype="multipart/form-data" id="uploadForm">
                         <!-- File Upload -->
                         <div class="mb-4">
                             <label for="file" class="form-label fw-bold">

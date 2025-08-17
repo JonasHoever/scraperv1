@@ -37,10 +37,10 @@
                     </div>
                     <div class="col-md-6">
                         <div class="btn-group w-100" role="group">
-                            <a href="/export/excel" class="btn btn-outline-success btn-excel hover-lift" onclick="Utils.showToast('Excel-Export wird vorbereitet...', 'info')">
+                            <a href="{{ url_for('export_excel') }}" class="btn btn-outline-success btn-excel hover-lift" onclick="Utils.showToast('Excel-Export wird vorbereitet...', 'info')">
                                 <i class="fas fa-file-excel me-1"></i>Excel Export
                             </a>
-                            <a href="/export/json" class="btn btn-outline-info btn-json hover-lift" onclick="Utils.showToast('JSON-Export wird vorbereitet...', 'info')">
+                            <a href="{{ url_for('export_json') }}" class="btn btn-outline-info btn-json hover-lift" onclick="Utils.showToast('JSON-Export wird vorbereitet...', 'info')">
                                 <i class="fas fa-file-code me-1"></i>JSON Export
                             </a>
                             <button class="btn btn-outline-primary hover-lift" onclick="forwardAllBrokers()">
@@ -280,7 +280,8 @@ function forwardBroker(index) {
     Utils.setButtonLoading(button, true);
     card.style.opacity = '0.7';
     
-    fetch('/api/forward', {
+    const base = (window.APP_BASE || '').replace(/\/$/, '');
+    fetch(`${base}/api/forward`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -367,7 +368,8 @@ function processBatches(batches, currentBatchIndex, progressBar, progressText, p
     const promises = currentBatch.map((broker, batchIndex) => {
         const globalIndex = currentBatchIndex * 3 + batchIndex;
         
-        return fetch('/api/forward', {
+    const base = (window.APP_BASE || '').replace(/\/$/, '');
+    return fetch(`${base}/api/forward`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -478,7 +480,7 @@ function exportToExcel() {
     
     // Navigate to export
     setTimeout(() => {
-        window.location.href = '/export/excel';
+    window.location.href = "{{ url_for('export_excel') }}";
         Utils.setButtonLoading(button, false);
     }, 1000);
 }
@@ -492,7 +494,7 @@ function exportToJson() {
     
     // Navigate to export
     setTimeout(() => {
-        window.location.href = '/export/json';
+    window.location.href = "{{ url_for('export_json') }}";
         Utils.setButtonLoading(button, false);
     }, 1000);
 }

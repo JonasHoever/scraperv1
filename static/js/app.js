@@ -535,7 +535,9 @@ function closeAllModalsAndDropdowns() {
 // Service Worker Registration
 async function registerServiceWorker() {
     try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const base = (window.APP_BASE || '').replace(/\/$/, '');
+        const swPath = `${base}/static/sw.js`;
+        const registration = await navigator.serviceWorker.register(swPath);
         console.log('Service Worker registriert:', registration);
     } catch (error) {
         console.log('Service Worker Registrierung fehlgeschlagen:', error);
@@ -880,7 +882,8 @@ function exportToExcel() {
         Utils.setButtonLoading(exportBtn, true);
     }
     
-    window.location.href = '/export/excel';
+    const base = (window.APP_BASE || '').replace(/\/$/, '');
+    window.location.href = `${base}/export/excel`;
     
     setTimeout(() => {
         if (exportBtn) {
@@ -896,7 +899,8 @@ function exportToJson() {
         Utils.setButtonLoading(exportBtn, true);
     }
     
-    window.location.href = '/export/json';
+    const base = (window.APP_BASE || '').replace(/\/$/, '');
+    window.location.href = `${base}/export/json`;
     
     setTimeout(() => {
         if (exportBtn) {

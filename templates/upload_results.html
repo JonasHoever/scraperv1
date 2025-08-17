@@ -81,11 +81,11 @@
                         Ergebnisse exportieren
                     </h5>
                     <div class="btn-group" role="group">
-                        <a href="/export/excel?source=upload" class="btn btn-success btn-lg">
+                        <a href="{{ url_for('export_excel') }}?source=upload" class="btn btn-success btn-lg">
                             <i class="fas fa-file-excel me-2"></i>
                             Als Excel herunterladen
                         </a>
-                        <a href="/export/json?source=upload" class="btn btn-primary btn-lg">
+                        <a href="{{ url_for('export_json') }}?source=upload" class="btn btn-primary btn-lg">
                             <i class="fas fa-file-code me-2"></i>
                             Als JSON herunterladen
                         </a>
@@ -294,11 +294,11 @@
 
     <!-- Back to Upload -->
     <div class="text-center mt-5">
-        <a href="/upload" class="btn btn-outline-primary btn-lg">
+    <a href="{{ url_for('upload_excel') }}" class="btn btn-outline-primary btn-lg">
             <i class="fas fa-upload me-2"></i>
             Neue Datei hochladen
         </a>
-        <a href="/" class="btn btn-outline-secondary btn-lg ms-2">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg ms-2">
             <i class="fas fa-home me-2"></i>
             Zur Startseite
         </a>
@@ -311,8 +311,8 @@ window.uploadResults = {
     existing_brokers: {{ results.existing_brokers | tojson | safe }},
     new_brokers: {{ results.new_brokers | tojson | safe }},
     duplicates: {{ results.duplicates | tojson | safe }},
-    search_location: '{{ results.search_location }}',
-    search_radius: {{ results.search_radius }}
+    search_location: {{ results.search_location | tojson }},
+    search_radius: {{ results.search_radius | tojson }}
 };
 
 async function sendToAPI() {
@@ -336,7 +336,8 @@ async function sendToAPI() {
         showSafeToast('Sende Daten an API...', 'info');
         
         // Get current API settings
-        const settingsResponse = await fetch('/api/settings');
+    const base = (window.APP_BASE || '').replace(/\/$/, '');
+    const settingsResponse = await fetch(`${base}/api/settings`);
         const settings = await settingsResponse.json();
         
         if (!settings.api_url) {
@@ -357,7 +358,7 @@ async function sendToAPI() {
         };
         
         // Send upload results to API
-        const response = await fetch('/api/forward', {
+    const response = await fetch(`${base}/api/forward`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

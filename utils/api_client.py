@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from typing import Dict, Optional, Any
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +18,18 @@ def forward_to_external_api(broker_data: Dict[str, Any]) -> Optional[Dict]:
         dict: Response der externen API oder None bei Fehler
     """
     try:
+        # Stelle sicher, dass die .env-Änderungen in jedem Worker geladen werden
+        load_dotenv(override=True)
         external_api_url = os.getenv('EXTERNAL_API_URL')
         
         if not external_api_url:
             logger.warning("EXTERNAL_API_URL nicht konfiguriert")
-            return None
+            # Liefere eine klare Fehlerstruktur zurück, statt None
+            return {
+                'success': False,
+                'error': 'EXTERNAL_API_URL not configured',
+                'status_code': None
+            }
         
         # Daten für externe API aufbereiten
         payload = prepare_broker_payload(broker_data)
@@ -56,11 +64,13 @@ def forward_to_external_api(broker_data: Dict[str, Any]) -> Optional[Dict]:
             timeout=30
         )
         
+        # Treat any 2xx as success; try JSON, fall back to text
         response.raise_for_status()
-        
-        result = response.json() if response.content else {}
         logger.info(f"Externe API Antwort: Status {response.status_code}")
-        
+        try:
+            result = response.json() if response.content else {}
+        except json.JSONDecodeError:
+            result = {'text': response.text[:1000]}
         return {
             'status_code': response.status_code,
             'data': result,
